@@ -5,6 +5,8 @@
 #include <stdint.h>
 #include <math.h>
 #include "drawer.h"
+#include <stdlib.h>
+
 
 // this set of code is meant for drawing triangles-- basically, translating an array of triangles into an array of points in the image.
 typedef struct screen_point

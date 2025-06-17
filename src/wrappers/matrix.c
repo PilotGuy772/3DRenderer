@@ -8,7 +8,7 @@ void mat4_identity(mat4 m)
         m[i] = (i % 5 == 0) ? 1.0f : 0.0f; // set diagonal to 1, others to 0
 }
 
-void mat4_multiply(const mat4 a, const mat4 b, mat4 out)
+void mat4_multiply(mat4 a, mat4 b, mat4 out)
 {
     for (int col = 0; col < 4; col++)
     {
@@ -88,4 +88,12 @@ void mat4_transform_vec2f(const mat4 m, const vec2f* v, vec2f* out)
 {
     out->x = m[0] * v->x + m[4] * v->y + m[12];
     out->y = m[1] * v->x + m[5] * v->y + m[13];
+}
+// vector4 transformations including homogenous component
+void mat4_transform_vec4f(const mat4 m, const vec4f* v, vec4f* out)
+{
+    out->x = m[0] * v->x + m[4] * v->y + m[8] * v->z + m[12] * v->w;
+    out->y = m[1] * v->x + m[5] * v->y + m[9] * v->z + m[13] * v->w;
+    out->z = m[2] * v->x + m[6] * v->y + m[10] * v->z + m[14] * v->w;
+    out->w = m[3] * v->x + m[7] * v->y + m[11] * v->z + m[15] * v->w;
 }

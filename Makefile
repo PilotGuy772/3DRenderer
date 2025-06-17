@@ -1,6 +1,7 @@
 # Compiler and flags
+MACOS_SDL_CFLAGS = -I/opt/homebrew/Cellar/sdl2/2.32.8/include -D_THREAD_SAFE
 CC = gcc
-CFLAGS = -Wall -Wextra -std=c99 -Iinclude $(shell sdl2-config --cflags)
+CFLAGS = -Wall -Wextra -std=c99 -Iinclude $(MACOS_SDL_CFLAGS) # shell sdl2-config --cflags
 LDLIBS = $(shell sdl2-config --libs) -lm
 
 # Directories

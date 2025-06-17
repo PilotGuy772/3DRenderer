@@ -11,6 +11,6 @@
  * @param transform Transformation matrix to apply to the vertices representing the model's position, rotation, and scale in the world.
  * @param out_vertices Output array for the transformed vertices in world space.
  */
-void world_from_model(vec3* vertices, int num_vertices, mat4 transform, vec3* out_vertices);
+void world_from_model(vec4f* vertices, int num_vertices, mat4 transform, vec4f* out_vertices);
 
 #endif
