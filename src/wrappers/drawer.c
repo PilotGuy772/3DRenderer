@@ -1,5 +1,7 @@
 #include "drawer.h"
 
+#include <SDL2/SDL.h>
+
 SDL_Window *window;
 SDL_Renderer *renderer;
 SDL_Texture *texture;
@@ -22,7 +24,7 @@ void drawer_init(int width, int height)
     window_height = height;
 }
 
-void drawer_draw_buffer(uint32_t image)
+void drawer_draw_buffer(uint32_t* image)
 {
     SDL_UpdateTexture(texture, NULL, image, window_width * sizeof(uint32_t));
     SDL_RenderClear(renderer);

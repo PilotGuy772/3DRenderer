@@ -1,13 +1,12 @@
+#include "main.h"
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <SDL2/SDL.h>
 #include "drawer.h"
 
-
 int main(int argc, char *argv[])
-{
-    printf("Hello, World!");
-    
+{    
     SDL_Init(SDL_INIT_VIDEO);
 
     int width = 512;

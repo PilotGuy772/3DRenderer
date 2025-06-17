@@ -1,8 +1,7 @@
 # Compiler and flags
 CC = gcc
-CFLAGS = -Wall -Wextra -std=c99 -Iinclude
-
-
+CFLAGS = -Wall -Wextra -std=c99 -Iinclude $(shell sdl2-config --cflags)
+LDLIBS = $(shell sdl2-config --libs)
 
 # Directories
 SRC_DIR = src
@@ -10,7 +9,7 @@ INC_DIR = include
 BUILD_DIR = build
 
 # Find all .c files and convert to .o in build dir
-SRCS := $(wildcard $(SRC_DIR)/*.c)
+SRCS := $(shell find $(SRC_DIR) -name '*.c')
 OBJS := $(patsubst $(SRC_DIR)/%.c, $(BUILD_DIR)/%.o, $(SRCS))
 
 # Output binary name
@@ -21,15 +20,12 @@ all: $(TARGET)
 
 # Link object files to create the final binary
 $(TARGET): $(OBJS)
-	echo $(CC) 
-	echo $(CLFAGS)
-	echo $(/opt/homebrew/bin/sdl2-config --cflags --libs)
 	@mkdir -p $(BUILD_DIR)
-	$(CC) $(OBJS) -o $@
+	$(CC) $(OBJS) -o $@ $(LDLIBS)
 
 # Compile each .c file into an .o file
 $(BUILD_DIR)/%.o: $(SRC_DIR)/%.c
-	@mkdir -p $(BUILD_DIR)
+	@mkdir -p $(dir $@)
 	$(CC) $(CFLAGS) -c $< -o $@
 
 # Clean rule
