@@ -1,5 +1,7 @@
 {
     "files.associations": {
-        "drawer.h": "c"
+        "drawer.h": "c",
+        "screenspace.h": "c",
+        "math.h": "c"
     }
 }
