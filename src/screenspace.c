@@ -33,8 +33,8 @@ void screenspace_draw_line(uint32_t* image, screen_point p1, screen_point p2)
     {
         if (p1.x > p2.x)
         {
-            screen_point tmp = p2;
-            p2 = p1;
+            screen_point tmp = p1;
+            p1 = p2;
             p2 = tmp;
         }
 
@@ -48,8 +48,8 @@ void screenspace_draw_line(uint32_t* image, screen_point p1, screen_point p2)
     {
         if (p1.y > p2.y)
         {
-            screen_point tmp = p2;
-            p2 = p1;
+            screen_point tmp = p1;
+            p1 = p2;
             p2 = tmp;
         }
 
