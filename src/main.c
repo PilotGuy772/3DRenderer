@@ -130,7 +130,7 @@ int main(int argc, char *argv[])
 
         // basic render pipeline track, using the model defined above for testing
 
-        render_model(image, vertices, num_vertices, indices, 6, transform, camera_transform, width, height);
+        render_model(image, vertices, num_vertices, indices, num_indices, transform, camera_transform, width, height);
 
         //screenspace_plot_point(image, (screen_point){width / 2, height / 2});
         drawer_draw_buffer(image);
