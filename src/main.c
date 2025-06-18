@@ -12,6 +12,7 @@
 #include "matrix.h"
 #include "projection.h"
 #include <math.h>
+#include "io.h"
 
 # define M_PI 3.14159265358979323846
 
@@ -54,34 +55,46 @@ int main(int argc, char *argv[])
     //screenspace_draw_line(image, p1, p2);
 
     // create a model-- for now, just a plane will do
-    vec3f* vertices = malloc(4 * sizeof(vec3));
-    if (!vertices)
-    {
-        printf("malloc failure.\n");
-        return 1;
-    }
+    // vec3f* vertices = malloc(4 * sizeof(vec3));
+    // if (!vertices)
+    // {
+    //     printf("malloc failure.\n");
+    //     return 1;
+    // }
 
-    // define a simple plane
-    vertices[0] = (vec3f){-0.5f, -0.5f, 1.0f};
-    vertices[1] = (vec3f){0.5f, -0.5f, 0.0f};
-    vertices[2] = (vec3f){0.5f, 0.5f, 0.0f};
-    vertices[3] = (vec3f){-0.5f, 0.5f, 1.0f};
-    int num_vertices = 4;
+    // // define a simple plane
+    // vertices[0] = (vec3f){-0.5f, -0.5f, 1.0f};
+    // vertices[1] = (vec3f){0.5f, -0.5f, 0.0f};
+    // vertices[2] = (vec3f){0.5f, 0.5f, 0.0f};
+    // vertices[3] = (vec3f){-0.5f, 0.5f, 1.0f};
+    // int num_vertices = 4;
 
-    // and the IBO
-    int* indices = malloc(6 * sizeof(int));
-    if (!indices)
+    // // and the IBO
+    // int* indices = malloc(6 * sizeof(int));
+    // if (!indices)
+    // {
+    //     printf("malloc failure.\n");
+    //     free(vertices);
+    //     return 1;
+    // }
+    // indices[0] = 0; // triangle 1
+    // indices[1] = 1;
+    // indices[2] = 2;
+    // indices[3] = 0; // triangle 2
+    // indices[4] = 2;
+    // indices[5] = 3;
+
+    // read a model from file
+    vec3f* vertices;
+    int* indices;
+    int num_vertices, num_indices;
+    read_model("cube.obj", &vertices, &indices, &num_vertices, &num_indices);
+
+    printf("Read vertices:\n");
+    for (int i = 0; i < num_vertices; i++)
     {
-        printf("malloc failure.\n");
-        free(vertices);
-        return 1;
+        printf("Vertex %d: (%f, %f, %f)\n", i, vertices[i].x, vertices[i].y, vertices[i].z);
     }
-    indices[0] = 0; // triangle 1
-    indices[1] = 1;
-    indices[2] = 2;
-    indices[3] = 0; // triangle 2
-    indices[4] = 2;
-    indices[5] = 3;
 
     // finally, a mat4 representing its position in world space
     // for now, we want no transformations, so we can use the identity matrix
@@ -94,7 +107,7 @@ int main(int argc, char *argv[])
     // for now, back it up a bit and look at the origin
     mat4 camera_transform;
     mat4_identity(camera_transform);
-    mat4_translate(camera_transform, 0.0f, 0.0f, -2.0f);
+    mat4_translate(camera_transform, 0.0f, 0.0f, -3.0f);
     printf("Camera transform:\n");
     mat4_print(camera_transform);
 
