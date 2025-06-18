@@ -15,6 +15,14 @@
 
 # define M_PI 3.14159265358979323846
 
+void print_vertices(vec4f* screen_vertices, int num_vertices)
+{
+    for (int i = 0; i < num_vertices; i++)
+    {
+        printf("Vertex %d: (%f, %f, %f, %f)\n", i, screen_vertices[i].x, screen_vertices[i].y, screen_vertices[i].z, screen_vertices[i].w);
+    }
+}
+
 int main(int argc, char *argv[])
 {    
     SDL_Init(SDL_INIT_VIDEO);
@@ -46,7 +54,7 @@ int main(int argc, char *argv[])
     //screenspace_draw_line(image, p1, p2);
 
     // create a model-- for now, just a plane will do
-    vec3* vertices = malloc(4 * sizeof(vec3));
+    vec3f* vertices = malloc(4 * sizeof(vec3));
     if (!vertices)
     {
         printf("malloc failure.\n");
@@ -54,10 +62,10 @@ int main(int argc, char *argv[])
     }
 
     // define a simple plane
-    vertices[0] = (vec3){-1.0f, 0.0f, -1.0f};
-    vertices[1] = (vec3){1.0f, 0.0f, -1.0f};
-    vertices[2] = (vec3){1.0f, 0.0f, 1.0f};
-    vertices[3] = (vec3){-1.0f, 0.0f, 1.0f};
+    vertices[0] = (vec3f){-1.0f, 0.0f, -1.0f};
+    vertices[1] = (vec3f){1.0f, 0.0f, -1.0f};
+    vertices[2] = (vec3f){1.0f, 0.0f, 1.0f};
+    vertices[3] = (vec3f){-1.0f, 0.0f, 1.0f};
 
     // and the IBO
     int* indices = malloc(6 * sizeof(int));
@@ -111,6 +119,12 @@ int main(int argc, char *argv[])
 
         // basic render pipeline track, using the model defined above for testing
         
+        printf("Model vertices:\n");
+        for (int i = 0; i < 4; i++)
+        {
+            printf("Vertex %d: (%f, %f, %f)\n", i, vertices[i].x, vertices[i].y, vertices[i].z);
+        }
+
         // 1. translate into world space
         vec4f* world_vertices = malloc(4 * sizeof(vec4f));
         if (!world_vertices)
@@ -120,6 +134,7 @@ int main(int argc, char *argv[])
             free(indices);
             return 1;
         }
+        // (add homogenous component)
         vec4f* vertices_w = malloc(4 * sizeof(vec4f));
         if (!vertices_w)
         {
@@ -131,6 +146,9 @@ int main(int argc, char *argv[])
         }
         model_add_w((vec3f*)vertices, 4, vertices_w);
         world_from_model(vertices_w, 4, transform, world_vertices);
+
+        printf("World vertices:\n");
+        print_vertices(world_vertices, 4);
 
         // 2. transform into camera space
         vec4f* camera_vertices = malloc(4 * sizeof(vec4f));
@@ -144,6 +162,9 @@ int main(int argc, char *argv[])
             return 1;
         }
         camera_from_world(camera_transform, world_vertices, 4, camera_vertices);
+
+        printf("Camera vertices:\n");
+        print_vertices(camera_vertices, 4);
 
         // 3. transform into clip space
         // we need to decide on some camera constants too (znear, zfar, fov, aspect)
@@ -163,6 +184,9 @@ int main(int argc, char *argv[])
             return 1;
         }
         clip_from_camera(camera_vertices, 4, fov, aspect, znear, zfar, clip_vertices);
+
+        printf("Clip vertices:\n");
+        print_vertices(clip_vertices, 4);
 
         // 4. transform into NDC
         // this is simple enough that we can do it in place
@@ -188,19 +212,22 @@ int main(int argc, char *argv[])
         }
         screenspace_from_ndc(clip_vertices, 4, znear, zfar, screen_vertices);
 
+        printf("Screen vertices:\n");
+        print_vertices(screen_vertices, 4);
+
         // finally, 6. assemble and draw triangles
         // now we can go all the way back to our IBO and make triangles
         // this will be automated later, manual for now
         triangle tri1 = { 
-            {screen_vertices[0].x, screen_vertices[0].y, screen_vertices[0].z}, 
-            {screen_vertices[1].x, screen_vertices[1].y, screen_vertices[1].z}, 
-            {screen_vertices[2].x, screen_vertices[2].y, screen_vertices[2].z} 
+            {screen_vertices[0].x, screen_vertices[0].y}, 
+            {screen_vertices[1].x, screen_vertices[1].y}, 
+            {screen_vertices[2].x, screen_vertices[2].y} 
         };
 
         triangle tri2 = { 
-            {screen_vertices[0].x, screen_vertices[0].y, screen_vertices[0].z}, 
-            {screen_vertices[2].x, screen_vertices[2].y, screen_vertices[2].z}, 
-            {screen_vertices[3].x, screen_vertices[3].y, screen_vertices[3].z} 
+            {screen_vertices[0].x, screen_vertices[0].y}, 
+            {screen_vertices[2].x, screen_vertices[2].y}, 
+            {screen_vertices[3].x, screen_vertices[3].y} 
         };
         screenspace_draw_triangle(image, tri1);
         screenspace_draw_triangle(image, tri2);
@@ -233,3 +260,5 @@ int main(int argc, char *argv[])
     drawer_cleanup();
     return 0;
 }
+
+

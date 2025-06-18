@@ -5,6 +5,8 @@
 #define MATRIX_H
 
 #include <math.h>
+#include <stdlib.h>
+#include <stdio.h>
 
 typedef struct vec2
 {
