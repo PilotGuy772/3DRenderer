@@ -8,7 +8,8 @@
 #include "screenspace.h"
 #include "model.h"
 #include "world.h"
-#include <matrix.h>
+#include "camera.h"
+#include "matrix.h"
 
 int main(int argc, char *argv[])
 {    
@@ -80,12 +81,16 @@ int main(int argc, char *argv[])
     mat4 camera_transform;
     mat4_identity(camera_transform);
     mat4_translate(camera_transform, 0.0f, 3.0f, 0.0f);
-    mat4_look_at(camera_transform, (vec3){0.0f, 3.0f, 0.0f}, (vec3){0.0f, 0.0f, 0.0f}, (vec3){0.0f, 0.0f, 1.0f});
+    //mat4_look_at(camera_transform, (vec3){0.0f, 3.0f, 0.0f}, (vec3){0.0f, 0.0f, 0.0f}, (vec3){0.0f, 0.0f, 1.0f});
+    mat4_rotate_x(camera_transform, -M_PI / 2.0f); // rotate the camera to look down
 
     int running = 1;
     SDL_Event event;
     while (running)
     {
+        // temp-- end loop immediately after one iteration
+        running = 0;
+
         while(SDL_PollEvent(&event))
         {
             if (event.type == SDL_QUIT) running = 0;
@@ -125,6 +130,19 @@ int main(int argc, char *argv[])
         }
         model_add_w((vec3f*)vertices, 4, vertices_w);
         world_from_model(vertices_w, 4, transform, world_vertices);
+
+        // 2. transform into camera space
+        vec4f* camera_vertices = malloc(4 * sizeof(vec4f));
+        if (!camera_vertices)
+        {
+            printf("malloc failure.\n");
+            free(vertices);
+            free(indices);
+            free(world_vertices);
+            free(vertices_w);
+            return 1;
+        }
+        camera_from_world(camera_transform, world_vertices, 4, camera_vertices);
     }
 
     //printf("p1: %d %d\np2: %d %d\np3: %d %d\n", p1.x, p1.y, p2.x, p2.y, p3.x, p3.y);
