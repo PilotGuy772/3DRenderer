@@ -28,5 +28,6 @@ void screenspace_draw_line(uint32_t* image, screen_point p1, screen_point p2);
 void screenspace_draw_vertical_line(uint32_t* image, screen_point p1, screen_point p2);
 void screenspace_plot_point(uint32_t* image, screen_point p);
 void screenspace_from_ndc(vec4f* vertices, int num_vertices, float znear, float zfar, vec4f* out_vertices);
+void screenspace_draw_model(vec4f* screen_vertices, int num_indices, int* ibo, uint32_t* image);
 
 #endif

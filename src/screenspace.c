@@ -116,3 +116,16 @@ void screenspace_from_ndc(vec4f *vertices, int num_vertices, float znear, float 
         out_vertices[i].w = vertices[i].w; // keep W as is
     }
 }
+
+void screenspace_draw_model(vec4f* screen_vertices, int num_indices, int* ibo, uint32_t* image)
+{
+    for (int i = 0; i < num_indices; i += 3)
+    {
+        triangle tri = {
+            {screen_vertices[ibo[i]].x, screen_vertices[ibo[i]].y},
+            {screen_vertices[ibo[i + 1]].x, screen_vertices[ibo[i + 1]].y},
+            {screen_vertices[ibo[i + 2]].x, screen_vertices[ibo[i + 2]].y}
+        };
+        screenspace_draw_triangle(image, tri);
+    }
+}
