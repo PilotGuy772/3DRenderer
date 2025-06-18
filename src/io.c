@@ -31,17 +31,25 @@ void read_model(char* filepath, vec3f** vertices, int** indices, int* num_vertic
             sscanf(line + 2, "%f %f %f", &(*vertices)[vertex_count].x, &(*vertices)[vertex_count].y, &(*vertices)[vertex_count].z);
             vertex_count++;
         } else if (strncmp(line, "f ", 2) == 0) {
-            // Face line
-            int v1, v2, v3;
-            sscanf(line + 2, "%d %d %d", &v1, &v2, &v3);
-            (*indices)[face_count++] = v1 - 1; // Convert to zero-based index
-            (*indices)[face_count++] = v2 - 1;
-            (*indices)[face_count++] = v3 - 1;
+            int v[4];
+            int count = sscanf(line + 2, "%d/%*d/%*d %d/%*d/%*d %d/%*d/%*d %d/%*d/%*d",
+                            &v[0], &v[1], &v[2], &v[3]);
+
+            if (count >= 3) {
+                (*indices)[face_count++] = v[0] - 1;
+                (*indices)[face_count++] = v[1] - 1;
+                (*indices)[face_count++] = v[2] - 1;
+            }
+            if (count == 4) {
+                (*indices)[face_count++] = v[0] - 1;
+                (*indices)[face_count++] = v[2] - 1;
+                (*indices)[face_count++] = v[3] - 1;
+            }
         }
     }
 
     *num_vertices = vertex_count;
-    *num_indices = face_count / 3; // Each face consists of 3 indices
+    *num_indices = face_count; // Each face consists of 3 indices
 
     *vertices = realloc(*vertices, vertex_count * sizeof(vec3f));
     *indices = realloc(*indices, face_count * sizeof(int));

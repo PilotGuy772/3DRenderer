@@ -95,6 +95,11 @@ int main(int argc, char *argv[])
     {
         printf("Vertex %d: (%f, %f, %f)\n", i, vertices[i].x, vertices[i].y, vertices[i].z);
     }
+    printf("Read faces:\n");
+    for (int i = 0; i < num_indices; i += 3)
+    {
+        printf("Face %d: (%d, %d, %d)\n", i / 3, indices[i], indices[i + 1], indices[i + 2]);
+    }
 
     // finally, a mat4 representing its position in world space
     // for now, we want no transformations, so we can use the identity matrix
@@ -107,7 +112,7 @@ int main(int argc, char *argv[])
     // for now, back it up a bit and look at the origin
     mat4 camera_transform;
     mat4_identity(camera_transform);
-    mat4_translate(camera_transform, 0.0f, 0.0f, -3.0f);
+    mat4_translate(camera_transform, 0.0f, 0.0f, -5.0f);
     printf("Camera transform:\n");
     mat4_print(camera_transform);
 
@@ -121,7 +126,7 @@ int main(int argc, char *argv[])
             if (event.type == SDL_QUIT) running = 0;
         }        
 
-        SDL_Delay(16);
+        SDL_Delay(500);
 
         // basic render pipeline track, using the model defined above for testing
 
@@ -131,7 +136,7 @@ int main(int argc, char *argv[])
         drawer_draw_buffer(image);
         drawer_clear_buffer(image);
 
-        mat4_translate(camera_transform, 0, 0, camera_transform[14] - 0.004f);
+        mat4_translate(camera_transform, 0, 0, camera_transform[14] - 0.1f);
         mat4_print(camera_transform);
     }
 
@@ -181,23 +186,10 @@ void render_model(uint32_t* image, vec3f* vertices, int num_vertices, int* indic
     // 5. transform into screen space
     vec4f* screen_vertices = malloc(num_vertices * sizeof(vec4f));
     screenspace_from_ndc(clip_vertices, num_vertices, znear, zfar, screen_vertices);
+    printf("Vertices in screen space:\n");
+    print_vertices(screen_vertices, num_vertices);
 
     // finally, 6. assemble and draw triangles
-    // now we can go all the way back to our IBO and make triangles
-    // this will be automated later, manual for now
-    // triangle tri1 = { 
-    //     {screen_vertices[0].x, screen_vertices[0].y}, 
-    //     {screen_vertices[1].x, screen_vertices[1].y}, 
-    //     {screen_vertices[2].x, screen_vertices[2].y} 
-    // };
-
-    // triangle tri2 = { 
-    //     {screen_vertices[0].x, screen_vertices[0].y}, 
-    //     {screen_vertices[2].x, screen_vertices[2].y}, 
-    //     {screen_vertices[3].x, screen_vertices[3].y} 
-    // };
-    // screenspace_draw_triangle(image, tri1);
-    // screenspace_draw_triangle(image, tri2);
     screenspace_draw_model(screen_vertices, num_indices, indices, image);
 
     // free everything
