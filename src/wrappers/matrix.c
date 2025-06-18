@@ -108,4 +108,12 @@ void mat4_inverse(const mat4 m, mat4 out)
     out[8] = m[2]; out[9] = m[6]; out[10] = m[10]; out[11] = 0;
     out[12] = -m[12]; out[13] = -m[13]; out[14] = -m[14]; out[15] = 1;
 }
+void mat4_print(const mat4 m)
+{
+    for (int i = 0; i < 4; i++)
+    {
+        printf("| %6.2f %6.2f %6.2f %6.2f |\n",
+               m[i * 4 + 0], m[i * 4 + 1], m[i * 4 + 2], m[i * 4 + 3]);
+    }
+}
 // Note: This is a naive implementation and does not handle all edge cases.

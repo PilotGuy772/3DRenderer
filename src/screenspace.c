@@ -2,6 +2,9 @@
 
 void screenspace_draw_triangle(uint32_t* image, triangle tri)
 {
+    printf("Drawing triangle: A(%d, %d), B(%d, %d), C(%d, %d)\n", 
+           tri.a.x, tri.a.y, tri.b.x, tri.b.y, tri.c.x, tri.c.y);
+
     screenspace_draw_line(image, tri.a, tri.b);
     screenspace_draw_line(image, tri.b, tri.c);
     screenspace_draw_line(image, tri.c, tri.a);
@@ -60,7 +63,6 @@ void screenspace_draw_line(uint32_t* image, screen_point p1, screen_point p2)
         }
     }
 
-    // TEMP!! DEBUG!! plot the points at the edges
     screenspace_plot_point(image, p1);
     screenspace_plot_point(image, p2);
 }

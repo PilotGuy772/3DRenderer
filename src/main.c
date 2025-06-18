@@ -19,8 +19,8 @@ int main(int argc, char *argv[])
 {    
     SDL_Init(SDL_INIT_VIDEO);
 
-    int width = 1920;
-    int height = 1080;
+    int width = 640;
+    int height = 640;
 
     drawer_init(width, height);
 
@@ -95,10 +95,7 @@ int main(int argc, char *argv[])
         // temp-- end loop immediately after one iteration
         running = 0;
 
-        while(SDL_PollEvent(&event))
-        {
-            if (event.type == SDL_QUIT) running = 0;
-        }
+        
 
         drawer_draw_buffer(image);
         SDL_Delay(1000);
@@ -194,13 +191,45 @@ int main(int argc, char *argv[])
         // finally, 6. assemble and draw triangles
         // now we can go all the way back to our IBO and make triangles
         // this will be automated later, manual for now
-        
+        triangle tri1 = { 
+            {screen_vertices[0].x, screen_vertices[0].y, screen_vertices[0].z}, 
+            {screen_vertices[1].x, screen_vertices[1].y, screen_vertices[1].z}, 
+            {screen_vertices[2].x, screen_vertices[2].y, screen_vertices[2].z} 
+        };
+
+        triangle tri2 = { 
+            {screen_vertices[0].x, screen_vertices[0].y, screen_vertices[0].z}, 
+            {screen_vertices[2].x, screen_vertices[2].y, screen_vertices[2].z}, 
+            {screen_vertices[3].x, screen_vertices[3].y, screen_vertices[3].z} 
+        };
+        screenspace_draw_triangle(image, tri1);
+        screenspace_draw_triangle(image, tri2);
+
+        // loop until quit
+        int quit = 0;
+        while (!quit)
+        {
+            while(SDL_PollEvent(&event))
+            {
+                if (event.type == SDL_QUIT) quit = 1;
+            }
+            SDL_Delay(100);
+        }
+
+
+        // free everything
+        free(vertices);
+        free(indices);
+        free(world_vertices);
+        free(vertices_w);
+        free(camera_vertices);
+        free(clip_vertices);
+        // ATTN! We will free these as soon as we're done with them later... doing this for simplicity for now
+
     }
 
     //printf("p1: %d %d\np2: %d %d\np3: %d %d\n", p1.x, p1.y, p2.x, p2.y, p3.x, p3.y);
     free(image);
     drawer_cleanup();
-    free(vertices);
-    free(indices);
     return 0;
 }
