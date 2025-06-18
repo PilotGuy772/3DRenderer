@@ -15,6 +15,6 @@ void clip_from_camera(vec4f* vertices, int num_vertices, float fov, float aspect
 
     for (int i = 0; i < num_vertices; i++)
     {
-        mat4_transform_vec4f(projection_matrix, &vertices[i], &out_vertices[i]);
+        mat4_transform_vec4f(projection_matrix, vertices[i], &out_vertices[i]);
     }
 }

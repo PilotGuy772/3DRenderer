@@ -60,7 +60,7 @@ void mat4_transform_vec2(const mat4 m, const vec2* v, vec2* out);
 void mat4_transform_vec2f(const mat4 m, const vec2f* v, vec2f* out);
 
 // vector4 transformations including homogenous component
-void mat4_transform_vec4f(const mat4 m, const vec4f* v, vec4f* out);
+void mat4_transform_vec4f(const mat4 m, vec4f v, vec4f* out);
 void mat4_inverse(const mat4 m, mat4 out);
 
 void mat4_print(const mat4 m);

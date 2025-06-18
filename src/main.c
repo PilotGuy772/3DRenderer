@@ -86,7 +86,9 @@ int main(int argc, char *argv[])
     // for now, we want no transformations, so we can use the identity matrix
     mat4 transform;
     mat4_identity(transform);
-
+    printf("Model transform:\n");
+    mat4_print(transform);
+    
 
     // define a matrix for camera position
     // for now, place it directly above the plane, looking down
@@ -95,6 +97,8 @@ int main(int argc, char *argv[])
     mat4_translate(camera_transform, 0.0f, 3.0f, 0.0f);
     //mat4_look_at(camera_transform, (vec3){0.0f, 3.0f, 0.0f}, (vec3){0.0f, 0.0f, 0.0f}, (vec3){0.0f, 0.0f, 1.0f});
     mat4_rotate_x(camera_transform, -M_PI / 2.0f); // rotate the camera to look down
+    printf("\nCamera transform:\n");
+    mat4_print(camera_transform);
 
     int running = 1;
     SDL_Event event;
@@ -144,7 +148,7 @@ int main(int argc, char *argv[])
             free(world_vertices);
             return 1;
         }
-        model_add_w((vec3f*)vertices, 4, vertices_w);
+        model_add_w(vertices, 4, vertices_w);
         world_from_model(vertices_w, 4, transform, world_vertices);
 
         printf("World vertices:\n");
