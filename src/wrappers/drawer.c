@@ -39,3 +39,11 @@ void drawer_cleanup()
     SDL_DestroyWindow(window);
     SDL_Quit();
 }
+
+void drawer_clear_buffer(uint32_t* image)
+{
+    for (int i = 0; i < window_width * window_height; i++)
+    {
+        image[i] = 0xFF000000; // ARGB format, fully transparent
+    }
+}

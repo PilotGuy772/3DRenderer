@@ -28,7 +28,7 @@ int main(int argc, char *argv[])
     SDL_Init(SDL_INIT_VIDEO);
 
     int width = 640;
-    int height = 640;
+    int height = 480;
 
     drawer_init(width, height);
 
@@ -62,10 +62,10 @@ int main(int argc, char *argv[])
     }
 
     // define a simple plane
-    vertices[0] = (vec3f){-1.0f, 0.0f, -1.0f};
-    vertices[1] = (vec3f){1.0f, 0.0f, -1.0f};
-    vertices[2] = (vec3f){1.0f, 0.0f, 1.0f};
-    vertices[3] = (vec3f){-1.0f, 0.0f, 1.0f};
+    vertices[0] = (vec3f){-0.5f, -0.5f, 0.0f};
+    vertices[1] = (vec3f){0.5f, -0.5f, 0.0f};
+    vertices[2] = (vec3f){0.5f, 0.5f, 0.0f};
+    vertices[3] = (vec3f){-0.5f, 0.5f, 0.0f};
 
     // and the IBO
     int* indices = malloc(6 * sizeof(int));
@@ -86,18 +86,15 @@ int main(int argc, char *argv[])
     // for now, we want no transformations, so we can use the identity matrix
     mat4 transform;
     mat4_identity(transform);
-    printf("Model transform:\n");
-    mat4_print(transform);
+    
     
 
     // define a matrix for camera position
-    // for now, place it directly above the plane, looking down
+    // for now, back it up a bit and look at the origin
     mat4 camera_transform;
     mat4_identity(camera_transform);
-    mat4_translate(camera_transform, 0.0f, 3.0f, 0.0f);
-    //mat4_look_at(camera_transform, (vec3){0.0f, 3.0f, 0.0f}, (vec3){0.0f, 0.0f, 0.0f}, (vec3){0.0f, 0.0f, 1.0f});
-    mat4_rotate_x(camera_transform, -M_PI / 2.0f); // rotate the camera to look down
-    printf("\nCamera transform:\n");
+    mat4_translate(camera_transform, 0.0f, 0.0f, -3.0f);
+    printf("Camera transform:\n");
     mat4_print(camera_transform);
 
     int running = 1;
@@ -105,11 +102,11 @@ int main(int argc, char *argv[])
     while (running)
     {
         // temp-- end loop immediately after one iteration
-        running = 0;
+        while(SDL_PollEvent(&event))
+        {
+            if (event.type == SDL_QUIT) running = 0;
+        }        
 
-        
-
-        drawer_draw_buffer(image);
         SDL_Delay(1000);
 
         //free(image);
@@ -122,53 +119,17 @@ int main(int argc, char *argv[])
         // screenspace_draw_triangle(image, tri1);
 
         // basic render pipeline track, using the model defined above for testing
-        
-        printf("Model vertices:\n");
-        for (int i = 0; i < 4; i++)
-        {
-            printf("Vertex %d: (%f, %f, %f)\n", i, vertices[i].x, vertices[i].y, vertices[i].z);
-        }
 
         // 1. translate into world space
         vec4f* world_vertices = malloc(4 * sizeof(vec4f));
-        if (!world_vertices)
-        {
-            printf("malloc failure.\n");
-            free(vertices);
-            free(indices);
-            return 1;
-        }
         // (add homogenous component)
         vec4f* vertices_w = malloc(4 * sizeof(vec4f));
-        if (!vertices_w)
-        {
-            printf("malloc failure.\n");
-            free(vertices);
-            free(indices);
-            free(world_vertices);
-            return 1;
-        }
         model_add_w(vertices, 4, vertices_w);
         world_from_model(vertices_w, 4, transform, world_vertices);
 
-        printf("World vertices:\n");
-        print_vertices(world_vertices, 4);
-
         // 2. transform into camera space
         vec4f* camera_vertices = malloc(4 * sizeof(vec4f));
-        if (!camera_vertices)
-        {
-            printf("malloc failure.\n");
-            free(vertices);
-            free(indices);
-            free(world_vertices);
-            free(vertices_w);
-            return 1;
-        }
         camera_from_world(camera_transform, world_vertices, 4, camera_vertices);
-
-        printf("Camera vertices:\n");
-        print_vertices(camera_vertices, 4);
 
         // 3. transform into clip space
         // we need to decide on some camera constants too (znear, zfar, fov, aspect)
@@ -177,19 +138,9 @@ int main(int argc, char *argv[])
         float fov = M_PI / 2.0f; // 90 degrees
         float aspect = (float)width / (float)height;
         vec4f* clip_vertices = malloc(4 * sizeof(vec4f));
-        if (!clip_vertices)
-        {
-            printf("malloc failure.\n");
-            free(vertices);
-            free(indices);
-            free(world_vertices);
-            free(vertices_w);
-            free(camera_vertices);
-            return 1;
-        }
         clip_from_camera(camera_vertices, 4, fov, aspect, znear, zfar, clip_vertices);
 
-        printf("Clip vertices:\n");
+        printf("Vertices in clip space:\n");
         print_vertices(clip_vertices, 4);
 
         // 4. transform into NDC
@@ -201,23 +152,12 @@ int main(int argc, char *argv[])
             clip_vertices[i].z /= clip_vertices[i].w;
         }
 
+        printf("Vertices in NDC:\n");
+        print_vertices(clip_vertices, 4);
+
         // 5. transform into screen space
         vec4f* screen_vertices = malloc(4 * sizeof(vec4f));
-        if (!screen_vertices)
-        {
-            printf("malloc failure.\n");
-            free(vertices);
-            free(indices);
-            free(world_vertices);
-            free(vertices_w);
-            free(camera_vertices);
-            free(clip_vertices);
-            return 1;
-        }
         screenspace_from_ndc(clip_vertices, 4, znear, zfar, screen_vertices);
-
-        printf("Screen vertices:\n");
-        print_vertices(screen_vertices, 4);
 
         // finally, 6. assemble and draw triangles
         // now we can go all the way back to our IBO and make triangles
@@ -236,27 +176,21 @@ int main(int argc, char *argv[])
         screenspace_draw_triangle(image, tri1);
         screenspace_draw_triangle(image, tri2);
 
-        // loop until quit
-        int quit = 0;
-        while (!quit)
-        {
-            while(SDL_PollEvent(&event))
-            {
-                if (event.type == SDL_QUIT) quit = 1;
-            }
-            SDL_Delay(100);
-        }
-
-
         // free everything
-        free(vertices);
-        free(indices);
         free(world_vertices);
         free(vertices_w);
         free(camera_vertices);
         free(clip_vertices);
         // ATTN! We will free these as soon as we're done with them later... doing this for simplicity for now
 
+
+        // for testing, move the camera backwards 
+        mat4_translate(camera_transform, 0, 0, camera_transform[14] - 1.0f);
+        mat4_print(camera_transform);
+
+        //screenspace_plot_point(image, (screen_point){width / 2, height / 2});
+        drawer_draw_buffer(image);
+        drawer_clear_buffer(image);
     }
 
     //printf("p1: %d %d\np2: %d %d\np3: %d %d\n", p1.x, p1.y, p2.x, p2.y, p3.x, p3.y);

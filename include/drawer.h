@@ -14,5 +14,6 @@ extern int window_height;
 void drawer_draw_buffer(uint32_t* image);
 void drawer_init(int width, int height);
 void drawer_cleanup();
+void drawer_clear_buffer(uint32_t* image);
 
 #endif

@@ -105,9 +105,14 @@ void screenspace_from_ndc(vec4f *vertices, int num_vertices, float znear, float 
         y_screen = y_vp + ((y_ndc + 1) * h_vp / 2)
         z_screen = z_min + ((z_ndc + 1) * (z_max - z_min) / 2)
         */
-        out_vertices[i].x = /* 0 + */ ((vertices[i].x + 1.0f) * window_width / 2.0f);
-        out_vertices[i].y = window_height + ((vertices[i].y + 1.0f) * window_height / 2.0f);
-        out_vertices[i].z = znear + ((vertices[i].z + 1.0f) * (zfar - znear) / 2.0f);
+        // out_vertices[i].x = /* 0 + */ ((vertices[i].x + 1.0f) * window_width / 2.0f);
+        // out_vertices[i].y = window_height + ((vertices[i].y + 1.0f) * window_height / 2.0f);
+        // out_vertices[i].z = znear + ((vertices[i].z + 1.0f) * (zfar - znear) / 2.0f);
+        // out_vertices[i].w = vertices[i].w; // keep W as is
+
+        out_vertices[i].x = (vertices[i].x + 1.0f) * 0.5f * window_width;
+        out_vertices[i].y = (1.0f - (vertices[i].y + 1.0f) * 0.5f) * window_height; // flip Y axis
+        out_vertices[i].z = vertices[i].z; // Z coordinate remains unchanged because we don't do anything with it for now
         out_vertices[i].w = vertices[i].w; // keep W as is
     }
 }

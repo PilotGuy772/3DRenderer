@@ -100,16 +100,13 @@ void mat4_transform_vec4f(const mat4 m, vec4f v, vec4f* out)
         | m[3] m[7] m[11] m[15] |   | v->w |
     
     */
-    printf("Original vec4f: (%f, %f, %f, %f)\n", v.x, v.y, v.z, v.w);
-    printf("Matrix:\n");
-    mat4_print(m);
+    
 
     out->x = m[0] * v.x + m[4] * v.y + m[8] * v.z + m[12] * v.w;
     out->y = m[1] * v.x + m[5] * v.y + m[9] * v.z + m[13] * v.w;
     out->z = m[2] * v.x + m[6] * v.y + m[10] * v.z + m[14] * v.w;
     out->w = m[3] * v.x + m[7] * v.y + m[11] * v.z + m[15] * v.w;
 
-    printf("Transformed vec4f: (%f, %f, %f, %f)\n", out->x, out->y, out->z, out->w);
 }
 void mat4_inverse(const mat4 m, mat4 out)
 {
@@ -122,12 +119,16 @@ void mat4_inverse(const mat4 m, mat4 out)
     out[8] = m[2]; out[9] = m[6]; out[10] = m[10]; out[11] = 0;
     out[12] = -m[12]; out[13] = -m[13]; out[14] = -m[14]; out[15] = 1;
 }
+// Note: This is a naive implementation and does not handle all edge cases.
+
 void mat4_print(const mat4 m)
 {
-    for (int i = 0; i < 4; i++)
-    {
-        printf("| %6.2f %6.2f %6.2f %6.2f |\n",
-               m[i * 4 + 0], m[i * 4 + 1], m[i * 4 + 2], m[i * 4 + 3]);
-    }
+    printf("| %6.2f %6.2f %6.2f %6.2f |\n",
+               m[0], m[4], m[8], m[12]);
+    printf("| %6.2f %6.2f %6.2f %6.2f |\n",
+               m[1], m[5], m[9], m[13]);
+    printf("| %6.2f %6.2f %6.2f %6.2f |\n",
+               m[2], m[6], m[10], m[14]);
+    printf("| %6.2f %6.2f %6.2f %6.2f |\n",
+               m[3], m[7], m[11], m[15]);
 }
-// Note: This is a naive implementation and does not handle all edge cases.
