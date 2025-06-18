@@ -90,3 +90,22 @@ void screenspace_plot_point(uint32_t* image, screen_point p)
         }
     }
 }
+
+void screenspace_from_ndc(vec4f *vertices, int num_vertices, float znear, float zfar, vec4f *out_vertices)
+{
+    // apply a basic transformation to convert from NDC to screen space
+    for (int i = 0; i < num_vertices; i++)
+    {
+        // NDC coordinates are in the range [-1, 1]
+        // convert to screen space coordinates
+        /*
+        x_screen = x_vp + ((x_ndc + 1) * w_vp / 2)
+        y_screen = y_vp + ((y_ndc + 1) * h_vp / 2)
+        z_screen = z_min + ((z_ndc + 1) * (z_max - z_min) / 2)
+        */
+        out_vertices[i].x = /* 0 + */ ((vertices[i].x + 1.0f) * window_width / 2.0f);
+        out_vertices[i].y = window_height + ((vertices[i].y + 1.0f) * window_height / 2.0f);
+        out_vertices[i].z = znear + ((vertices[i].z + 1.0f) * (zfar - znear) / 2.0f);
+        out_vertices[i].w = vertices[i].w; // keep W as is
+    }
+}

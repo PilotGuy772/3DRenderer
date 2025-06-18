@@ -166,6 +166,35 @@ int main(int argc, char *argv[])
             return 1;
         }
         clip_from_camera(camera_vertices, 4, fov, aspect, znear, zfar, clip_vertices);
+
+        // 4. transform into NDC
+        // this is simple enough that we can do it in place
+        for (int i = 0; i < 4; i++)
+        {
+            clip_vertices[i].x /= clip_vertices[i].w;
+            clip_vertices[i].y /= clip_vertices[i].w;
+            clip_vertices[i].z /= clip_vertices[i].w;
+        }
+
+        // 5. transform into screen space
+        vec4f* screen_vertices = malloc(4 * sizeof(vec4f));
+        if (!screen_vertices)
+        {
+            printf("malloc failure.\n");
+            free(vertices);
+            free(indices);
+            free(world_vertices);
+            free(vertices_w);
+            free(camera_vertices);
+            free(clip_vertices);
+            return 1;
+        }
+        screenspace_from_ndc(clip_vertices, 4, znear, zfar, screen_vertices);
+
+        // finally, 6. assemble and draw triangles
+        // now we can go all the way back to our IBO and make triangles
+        // this will be automated later, manual for now
+        
     }
 
     //printf("p1: %d %d\np2: %d %d\np3: %d %d\n", p1.x, p1.y, p2.x, p2.y, p3.x, p3.y);
