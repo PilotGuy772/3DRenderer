@@ -75,6 +75,13 @@ int main(int argc, char *argv[])
     mat4_identity(transform);
 
 
+    // define a matrix for camera position
+    // for now, place it directly above the plane, looking down
+    mat4 camera_transform;
+    mat4_identity(camera_transform);
+    mat4_translate(camera_transform, 0.0f, 3.0f, 0.0f);
+    mat4_look_at(camera_transform, (vec3){0.0f, 3.0f, 0.0f}, (vec3){0.0f, 0.0f, 0.0f}, (vec3){0.0f, 0.0f, 1.0f});
+
     int running = 1;
     SDL_Event event;
     while (running)

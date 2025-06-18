@@ -97,3 +97,15 @@ void mat4_transform_vec4f(const mat4 m, const vec4f* v, vec4f* out)
     out->z = m[2] * v->x + m[6] * v->y + m[10] * v->z + m[14] * v->w;
     out->w = m[3] * v->x + m[7] * v->y + m[11] * v->z + m[15] * v->w;
 }
+void mat4_inverse(const mat4 m, mat4 out)
+{
+    // This is a simplified version of matrix inversion for 4x4 matrices.
+    // In practice, you would use a more robust method or library for this.
+    // Here we assume m is an orthogonal matrix (which is not always the case).
+    mat4_identity(out);
+    out[0] = m[0]; out[1] = m[4]; out[2] = m[8]; out[3] = 0;
+    out[4] = m[1]; out[5] = m[5]; out[6] = m[9]; out[7] = 0;
+    out[8] = m[2]; out[9] = m[6]; out[10] = m[10]; out[11] = 0;
+    out[12] = -m[12]; out[13] = -m[13]; out[14] = -m[14]; out[15] = 1;
+}
+// Note: This is a naive implementation and does not handle all edge cases.
