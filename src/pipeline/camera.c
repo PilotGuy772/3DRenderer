@@ -2,7 +2,7 @@
 
 void camera_from_world(mat4 camera_transform, vec4f* vertices, int num_vertices, vec4f* out_vertices)
 {
-    vec4f inverse_camera_transform[16];
+    mat4 inverse_camera_transform;
     // compute inverse of the camera transform
     mat4_inverse(camera_transform, inverse_camera_transform);
 

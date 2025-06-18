@@ -10,6 +10,10 @@
 #include "world.h"
 #include "camera.h"
 #include "matrix.h"
+#include "projection.h"
+#include <math.h>
+
+# define M_PI 3.14159265358979323846
 
 int main(int argc, char *argv[])
 {    
@@ -143,6 +147,25 @@ int main(int argc, char *argv[])
             return 1;
         }
         camera_from_world(camera_transform, world_vertices, 4, camera_vertices);
+
+        // 3. transform into clip space
+        // we need to decide on some camera constants too (znear, zfar, fov, aspect)
+        float znear = 0.1f;
+        float zfar = 100.0f;
+        float fov = M_PI / 2.0f; // 90 degrees
+        float aspect = (float)width / (float)height;
+        vec4f* clip_vertices = malloc(4 * sizeof(vec4f));
+        if (!clip_vertices)
+        {
+            printf("malloc failure.\n");
+            free(vertices);
+            free(indices);
+            free(world_vertices);
+            free(vertices_w);
+            free(camera_vertices);
+            return 1;
+        }
+        clip_from_camera(camera_vertices, 4, fov, aspect, znear, zfar, clip_vertices);
     }
 
     //printf("p1: %d %d\np2: %d %d\np3: %d %d\n", p1.x, p1.y, p2.x, p2.y, p3.x, p3.y);
