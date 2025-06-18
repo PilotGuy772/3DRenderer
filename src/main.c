@@ -28,8 +28,8 @@ int main(int argc, char *argv[])
 {    
     SDL_Init(SDL_INIT_VIDEO);
 
-    int width = 640;
-    int height = 480;
+    int width = 2560;
+    int height = 1440;
 
     drawer_init(width, height);
 
@@ -88,7 +88,7 @@ int main(int argc, char *argv[])
     vec3f* vertices;
     int* indices;
     int num_vertices, num_indices;
-    read_model("cube.obj", &vertices, &indices, &num_vertices, &num_indices);
+    read_model("3d.obj", &vertices, &indices, &num_vertices, &num_indices);
 
     printf("Read vertices:\n");
     for (int i = 0; i < num_vertices; i++)
@@ -105,6 +105,10 @@ int main(int argc, char *argv[])
     // for now, we want no transformations, so we can use the identity matrix
     mat4 transform;
     mat4_identity(transform);
+
+    // this is the delta every frame; this matrix is applied to the transform every frame
+    mat4 change;
+    mat4_rotate_y(change, 0.01f);
     
     
 
@@ -112,7 +116,7 @@ int main(int argc, char *argv[])
     // for now, back it up a bit and look at the origin
     mat4 camera_transform;
     mat4_identity(camera_transform);
-    mat4_translate(camera_transform, 0.0f, 0.0f, -5.0f);
+    mat4_translate(camera_transform, 0.0f, 0.0f, -6.0f);
     printf("Camera transform:\n");
     mat4_print(camera_transform);
 
@@ -126,7 +130,7 @@ int main(int argc, char *argv[])
             if (event.type == SDL_QUIT) running = 0;
         }        
 
-        SDL_Delay(500);
+        SDL_Delay(16);
 
         // basic render pipeline track, using the model defined above for testing
 
@@ -136,8 +140,10 @@ int main(int argc, char *argv[])
         drawer_draw_buffer(image);
         drawer_clear_buffer(image);
 
-        mat4_translate(camera_transform, 0, 0, camera_transform[14] - 0.1f);
-        mat4_print(camera_transform);
+        //mat4_translate(camera_transform, 0, 0, camera_transform[14] - 0.004f);
+        
+        // spin the model
+        mat4_multiply(transform, change, transform);
     }
 
     //printf("p1: %d %d\np2: %d %d\np3: %d %d\n", p1.x, p1.y, p2.x, p2.y, p3.x, p3.y);
