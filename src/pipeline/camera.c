@@ -5,6 +5,13 @@ void camera_from_world(mat4 camera_transform, vec4f* vertices, int num_vertices,
     mat4 inverse_camera_transform;
     // compute inverse of the camera transform
     mat4_inverse(camera_transform, inverse_camera_transform);
+    printf("Camera transform:\n");
+    mat4_print(camera_transform);
+    printf("Inverse camera transform:\n");
+    mat4_print(inverse_camera_transform);
+
+    // testing-- also negate Z
+    //inverse_camera_transform[10] *= -1;
 
     for (int i = 0; i < num_vertices; i++)
     {
