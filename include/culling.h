@@ -11,7 +11,7 @@
 /// @param out_num_vertices Pointer to store the number of vertices after culling.
 /// @param out_indices Output array for the remaining indices.
 /// @param out_num_indices Pointer to store the number of indices after culling.
-void culling_cull_triangle(vec4f* vertices, int num_vertices, int* indices, int num_indices, vec4f* out_vertices, int* out_num_vertices, int* out_indices, int* out_num_indices);
+void culling_cull_triangle(vec4f* vertices, int num_vertices, int* indices, int num_indices, vec4f** out_vertices, int* out_num_vertices, int** out_indices, int* out_num_indices);
 
 int culling_check_point_in_range(vec4f point);
 

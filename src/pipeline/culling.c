@@ -20,13 +20,20 @@
 #include "culling.h"
 
 
-void culling_cull_triangle(vec4f* vertices, int num_vertices, int* indices, int num_indices, vec4f* out_vertices, int* out_num_vertices, int* out_indices, int* out_num_indices)
+void culling_cull_triangle(vec4f* vertices, int num_vertices, int* indices, int num_indices, vec4f** out_vertices, int* out_num_vertices, int** out_indices, int* out_num_indices)
 {
-    // allocate output arrays
+    int vertex_alloc = num_vertices * 2; // starting guess
+    int index_alloc = num_indices * 2;
+
     *out_num_vertices = 0;
     *out_num_indices = 0;
-    out_vertices = malloc(num_vertices * sizeof(vec4f));
-    out_indices = malloc(num_indices * sizeof(int));
+    *out_vertices = malloc(vertex_alloc * sizeof(vec4f));
+    *out_indices = malloc(index_alloc * sizeof(int));
+
+    if (!*out_vertices || !*out_indices) {
+        fprintf(stderr, "Memory allocation failed!\n");
+        exit(1);
+    }
 
     for (int i = 0; i < num_indices; i += 3)
     {
@@ -38,151 +45,150 @@ void culling_cull_triangle(vec4f* vertices, int num_vertices, int* indices, int 
         vec4f v2 = vertices[v2_index];
         vec4f v3 = vertices[v3_index];
 
-        int v1_in_range = culling_check_point_in_range(v1);
-        int v2_in_range = culling_check_point_in_range(v2);
-        int v3_in_range = culling_check_point_in_range(v3);
+        int v1_in = culling_check_point_in_range(v1);
+        int v2_in = culling_check_point_in_range(v2);
+        int v3_in = culling_check_point_in_range(v3);
 
-        // if all three vertices are outside
-        if (!v1_in_range && !v2_in_range && !v2_in_range)
+        int num_inside = v1_in + v2_in + v3_in;
+
+        int needed_vertices = 0;
+        int needed_indices = 0;
+
+        if (num_inside == 1)
         {
-            // discard this triangle
-            continue;
+            needed_vertices = 3;
+            needed_indices = 3;
         }
-        // if one vertex is inside
-        else if (v1_in_range + v2_in_range + v2_in_range == 1)
+        else if (num_inside == 2)
         {
-            // if v1 is inside, find intersections with the other two edges
-            if (v1_in_range)
-            {
-                vec4f intersection1, intersection2;
-                culling_find_line_intersection(v2, v1, &intersection1);
-                culling_find_line_intersection(v3, v1, &intersection2);
-                out_vertices[*out_num_vertices++] = v1;
-                out_vertices[*out_num_vertices++] = intersection1;
-                out_vertices[*out_num_vertices++] = intersection2;
-                out_indices[*out_num_indices++] = *out_num_vertices - 3;
-                out_indices[*out_num_indices++] = *out_num_vertices - 2;
-                out_indices[*out_num_indices++] = *out_num_vertices - 1;
-            }
-            //and for v2
-            else if (v2_in_range)
-            {
-                vec4f intersection1, intersection2;
-                culling_find_line_intersection(v1, v2, &intersection1);
-                culling_find_line_intersection(v3, v2, &intersection2);
-                out_vertices[*out_num_vertices++] = v2;
-                out_vertices[*out_num_vertices++] = intersection1;
-                out_vertices[*out_num_vertices++] = intersection2;
-                out_indices[*out_num_indices++] = *out_num_vertices - 3;
-                out_indices[*out_num_indices++] = *out_num_vertices - 2;
-                out_indices[*out_num_indices++] = *out_num_vertices - 1;
-            }
-            //finally, v3
-            else if (v3_in_range)
-            {
-                vec4f intersection1, intersection2;
-                culling_find_line_intersection(v1, v3, &intersection1);
-                culling_find_line_intersection(v2, v3, &intersection2);
-                out_vertices[*out_num_vertices++] = v3;
-                out_vertices[*out_num_vertices++] = intersection1;
-                out_vertices[*out_num_vertices++] = intersection2;
-                out_indices[*out_num_indices++] = *out_num_vertices - 3;
-                out_indices[*out_num_indices++] = *out_num_vertices - 2;
-                out_indices[*out_num_indices++] = *out_num_vertices - 1;
+            needed_vertices = 6;
+            needed_indices = 6;
+        }
+        else if (num_inside == 3)
+        {
+            needed_vertices = 3;
+            needed_indices = 3;
+        }
+
+        // Check and grow allocations if needed
+        if (*out_num_vertices + needed_vertices > vertex_alloc) {
+            vertex_alloc *= 2;
+            *out_vertices = realloc(*out_vertices, vertex_alloc * sizeof(vec4f));
+            if (!*out_vertices) {
+                fprintf(stderr, "Realloc vertices failed!\n");
+                exit(1);
             }
         }
-        // if two vertices are inside
-        else if (v1_in_range + v2_in_range + v3_in_range == 2)
+
+        if (*out_num_indices + needed_indices > index_alloc) {
+            index_alloc *= 2;
+            *out_indices = realloc(*out_indices, index_alloc * sizeof(int));
+            if (!*out_indices) {
+                fprintf(stderr, "Realloc indices failed!\n");
+                exit(1);
+            }
+        }
+
+        if (num_inside == 0)
         {
-            //v1 and v2 are inside
-            if(v1_in_range && v2_in_range)
-            {
-                vec4f intersection;
-                // triangle 1, using two inside and one intersect
-                culling_find_line_intersection(v3, v1, &intersection);
-                out_vertices[*out_num_vertices++] = v1;
-                out_vertices[*out_num_vertices++] = v2;
-                out_vertices[*out_num_vertices++] = intersection;
-                out_indices[*out_num_indices++] = *out_num_vertices - 3;
-                out_indices[*out_num_indices++] = *out_num_vertices - 2;
-                out_indices[*out_num_indices++] = *out_num_vertices - 1;
-
-                // triangle 2, using two intersect and one inside
-                vec4f intersection2;
-                culling_find_line_intersection(v3, v2, &intersection2);
-                out_vertices[*out_num_vertices++] = intersection;
-                out_vertices[*out_num_vertices++] = intersection2;
-                out_vertices[*out_num_vertices++] = v1; // which inside point we choose is irrelevant
-                out_indices[*out_num_indices++] = *out_num_vertices - 3;
-                out_indices[*out_num_indices++] = *out_num_vertices - 2;
-                out_indices[*out_num_indices++] = *out_num_vertices - 1;
+            continue; // discard
+        }
+        else if (num_inside == 1)
+        {
+            vec4f inside, i1, i2;
+            if (v1_in) {
+                inside = v1;
+                culling_find_line_intersection(v2, v1, &i1);
+                culling_find_line_intersection(v3, v1, &i2);
+            } else if (v2_in) {
+                inside = v2;
+                culling_find_line_intersection(v1, v2, &i1);
+                culling_find_line_intersection(v3, v2, &i2);
+            } else {
+                inside = v3;
+                culling_find_line_intersection(v1, v3, &i1);
+                culling_find_line_intersection(v2, v3, &i2);
             }
 
-            //v1 and v3 are inside
-            else if(v1_in_range && v3_in_range)
-            {
-                vec4f intersection;
-                // triangle 1, using two inside and one intersect
-                culling_find_line_intersection(v2, v1, &intersection);
-                out_vertices[*out_num_vertices++] = v1;
-                out_vertices[*out_num_vertices++] = v3;
-                out_vertices[*out_num_vertices++] = intersection;
-                out_indices[*out_num_indices++] = *out_num_vertices - 3;
-                out_indices[*out_num_indices++] = *out_num_vertices - 2;
-                out_indices[*out_num_indices++] = *out_num_vertices - 1;
+            int base = *out_num_vertices;
+            (*out_vertices)[base] = inside;
+            (*out_vertices)[base + 1] = i1;
+            (*out_vertices)[base + 2] = i2;
 
-                // triangle 2, using two intersect and one inside
-                vec4f intersection2;
-                culling_find_line_intersection(v2, v3, &intersection2);
-                out_vertices[*out_num_vertices++] = intersection;
-                out_vertices[*out_num_vertices++] = intersection2;
-                out_vertices[*out_num_vertices++] = v1; // which inside point we choose is irrelevant
-                out_indices[*out_num_indices++] = *out_num_vertices - 3;
-                out_indices[*out_num_indices++] = *out_num_vertices - 2;
-                out_indices[*out_num_indices++] = *out_num_vertices - 1;
+            (*out_indices)[*out_num_indices + 0] = base;
+            (*out_indices)[*out_num_indices + 1] = base + 1;
+            (*out_indices)[*out_num_indices + 2] = base + 2;
+
+            *out_num_vertices += 3;
+            *out_num_indices += 3;
+        }
+        else if (num_inside == 2)
+        {
+            vec4f in1, in2, out, i1, i2;
+
+            if (!v1_in) {
+                out = v1; in1 = v2; in2 = v3;
+                culling_find_line_intersection(v1, v2, &i1);
+                culling_find_line_intersection(v1, v3, &i2);
+            } else if (!v2_in) {
+                out = v2; in1 = v1; in2 = v3;
+                culling_find_line_intersection(v2, v1, &i1);
+                culling_find_line_intersection(v2, v3, &i2);
+            } else {
+                out = v3; in1 = v1; in2 = v2;
+                culling_find_line_intersection(v3, v1, &i1);
+                culling_find_line_intersection(v3, v2, &i2);
             }
 
-            //v2 and v3 are inside
-            else if(v2_in_range && v3_in_range)
-            {
-                vec4f intersection;
-                // triangle 1, using two inside and one intersect
-                culling_find_line_intersection(v1, v2, &intersection);
-                out_vertices[*out_num_vertices++] = v2;
-                out_vertices[*out_num_vertices++] = v3;
-                out_vertices[*out_num_vertices++] = intersection;
-                out_indices[*out_num_indices++] = *out_num_vertices - 3;
-                out_indices[*out_num_indices++] = *out_num_vertices - 2;
-                out_indices[*out_num_indices++] = *out_num_vertices - 1;
+            // Triangle 1
+            int base1 = *out_num_vertices;
+            (*out_vertices)[base1] = in1;
+            (*out_vertices)[base1 + 1] = in2;
+            (*out_vertices)[base1 + 2] = i1;
 
-                // triangle 2, using two intersect and one inside
-                vec4f intersection2;
-                culling_find_line_intersection(v1, v3, &intersection2);
-                out_vertices[*out_num_vertices++] = intersection;
-                out_vertices[*out_num_vertices++] = intersection2;
-                out_vertices[*out_num_vertices++] = v2; // which inside point we choose is irrelevant
-                out_indices[*out_num_indices++] = *out_num_vertices - 3;
-                out_indices[*out_num_indices++] = *out_num_vertices - 2;
-                out_indices[*out_num_indices++] = *out_num_vertices - 1;
-            }
+            (*out_indices)[*out_num_indices + 0] = base1;
+            (*out_indices)[*out_num_indices + 1] = base1 + 1;
+            (*out_indices)[*out_num_indices + 2] = base1 + 2;
+
+            *out_num_vertices += 3;
+            *out_num_indices += 3;
+
+            // Triangle 2
+            int base2 = *out_num_vertices;
+            (*out_vertices)[base2] = i1;
+            (*out_vertices)[base2 + 1] = i2;
+            (*out_vertices)[base2 + 2] = in2;
+
+            (*out_indices)[*out_num_indices + 0] = base2;
+            (*out_indices)[*out_num_indices + 1] = base2 + 1;
+            (*out_indices)[*out_num_indices + 2] = base2 + 2;
+
+            *out_num_vertices += 3;
+            *out_num_indices += 3;
         }
         else
         {
-            // all three vertices are inside, so we can keep this triangle
-            out_vertices[*out_num_vertices] = v1;
-            out_vertices[*out_num_vertices + 1] = v2;
-            out_vertices[*out_num_vertices + 2] = v3;
+            // All inside
+            int base = *out_num_vertices;
+            (*out_vertices)[base] = v1;
+            (*out_vertices)[base + 1] = v2;
+            (*out_vertices)[base + 2] = v3;
 
-            out_indices[*out_num_indices++] = *out_num_vertices;
-            out_indices[*out_num_indices++] = *out_num_vertices + 1;
-            out_indices[*out_num_indices++] = *out_num_vertices + 2;
+            (*out_indices)[*out_num_indices + 0] = base;
+            (*out_indices)[*out_num_indices + 1] = base + 1;
+            (*out_indices)[*out_num_indices + 2] = base + 2;
 
-            out_num_vertices += 3;
+            *out_num_vertices += 3;
+            *out_num_indices += 3;
         }
-
-        // that's it for this triangle
     }
+
+    // Optional: shrink to actual size
+    *out_vertices = realloc(*out_vertices, *out_num_vertices * sizeof(vec4f));
+    *out_indices = realloc(*out_indices, *out_num_indices * sizeof(int));
 }
+
+
 
 int culling_check_point_in_range(vec4f point)
 {

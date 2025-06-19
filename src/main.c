@@ -46,7 +46,7 @@ int main(int argc, char *argv[])
     vec3f* vertices;
     int* indices;
     int num_vertices, num_indices;
-    read_model("cube.obj", &vertices, &indices, &num_vertices, &num_indices);
+    read_model("3d.obj", &vertices, &indices, &num_vertices, &num_indices);
 
     printf("Read vertices:\n");
     for (int i = 0; i < 1; i++)
@@ -77,7 +77,7 @@ int main(int argc, char *argv[])
     // for now, back it up a bit and look at the origin
     mat4 camera_transform;
     mat4_identity(camera_transform);
-    mat4_translate(camera_transform, 0.0f, 0.0f, 6.0f);
+    mat4_translate(camera_transform, 0.0f, 0.0f, 3.5f);
     printf("Camera transform:\n");
     mat4_print(camera_transform);
 
@@ -156,11 +156,13 @@ void render_model(uint32_t* image, vec3f* vertices, int num_vertices, int* indic
 
     // culling!!
     // 4.5. cull triangles that are outside the view frustum
-    vec4f* culled_vertices;
-    int* culled_indices;
-    int tmp_num_vertices;
-    int tmp_num_indices;
-    culling_cull_triangle(clip_vertices, num_vertices, indices, num_indices, culled_vertices, &tmp_num_vertices, culled_indices, &tmp_num_indices);
+    vec4f* culled_vertices = NULL;
+    int* culled_indices = NULL;
+    int tmp_num_vertices = 0;
+    int tmp_num_indices = 0;
+    culling_cull_triangle(clip_vertices, num_vertices, indices, num_indices, 
+                            &culled_vertices, &tmp_num_vertices, 
+                            &culled_indices, &tmp_num_indices);
     num_vertices = tmp_num_vertices;
     num_indices = tmp_num_indices;
     printf("Culled!\n");
