@@ -76,8 +76,12 @@ int main(int argc, char *argv[])
     // define a matrix for camera position
     // for now, back it up a bit and look at the origin
     mat4 camera_transform;
+    mat4 temp;
     mat4_identity(camera_transform);
-    mat4_translate(camera_transform, 0.0f, 0.0f, 3.5f);
+    mat4_rotate_x(temp, -M_PI / 6.0f); // look up a bit
+    mat4_multiply(camera_transform, temp, camera_transform);
+    mat4_translate(temp, 0.0f, -0.5f, 5.0f);
+    mat4_multiply(camera_transform, temp, camera_transform);
     printf("Camera transform:\n");
     mat4_print(camera_transform);
 
