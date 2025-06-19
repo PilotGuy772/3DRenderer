@@ -62,6 +62,7 @@ void handle_keypress(SDL_Keycode key, mat4* camera_transform)
     mat4_identity(delta);
     // (translation only for now, rotation is... a challenge)
     switch (key) {
+        // translation
         case SDLK_w: // Move forward
             mat4_translate(delta, 0.0f, 0.0f, -MOVE_SPEED);
             break;
@@ -74,6 +75,25 @@ void handle_keypress(SDL_Keycode key, mat4* camera_transform)
         case SDLK_d: // Move right
             mat4_translate(delta, MOVE_SPEED, 0.0f, 0.0f);
             break;
+        case SDLK_q: // move up
+            mat4_translate(delta, 0.0f, MOVE_SPEED, 0.0f);
+            break;
+        case SDLK_e: // move down
+            mat4_translate(delta, 0.0f, -MOVE_SPEED, 0.0f);
+            break;
+
+        // rotation
+        case SDLK_LEFT: // Rotate left
+            mat4_rotate_y(delta, -ROTATE_SPEED);
+            break;
+        case SDLK_RIGHT: // Rotate right
+            mat4_rotate_y(delta, ROTATE_SPEED);
+            break;
+        case SDLK_UP: // Rotate up
+            mat4_rotate_x(delta, -ROTATE_SPEED);
+            break;
+        case SDLK_DOWN: // Rotate down
+            mat4_rotate_x(delta, ROTATE_SPEED);
         default:
             break;
     }
@@ -87,8 +107,8 @@ void handle_keyup(SDL_Keycode key, mat4* camera_transform)
 {
     mat4 delta;
     mat4_identity(delta);
-    // (translation only for now, rotation is... a challenge)
     switch (key) {
+        // translation
         case SDLK_w: // Move forward
             mat4_translate(delta, 0.0f, 0.0f, MOVE_SPEED);
             break;
@@ -100,6 +120,25 @@ void handle_keyup(SDL_Keycode key, mat4* camera_transform)
             break;
         case SDLK_d: // Move right
             mat4_translate(delta, -MOVE_SPEED, 0.0f, 0.0f);
+            break;
+        case SDLK_q: // move up
+            mat4_translate(delta, 0.0f, -MOVE_SPEED, 0.0f);
+            break;
+        case SDLK_e: // move down
+            mat4_translate(delta, 0.0f, MOVE_SPEED, 0.0f);
+
+        // rotation
+        case SDLK_LEFT: // Rotate left
+            mat4_identity(*camera_transform);
+            break;
+        case SDLK_RIGHT: // Rotate right
+            mat4_identity(*camera_transform);
+            break;
+        case SDLK_UP: // Rotate up
+            mat4_identity(*camera_transform);
+            break;
+        case SDLK_DOWN: // Rotate down
+            mat4_identity(*camera_transform);
             break;
         default:
             break;
@@ -120,4 +159,23 @@ void clamp_movement(mat4 *camera_per_tick_transform)
             (*camera_per_tick_transform)[i] = -MOVE_SPEED;
         }
     }
+
+    // rotation is at 0 1 2 4 5 6
+    // for (int i = 0; i < 12; i++) {
+    //     if ((*camera_per_tick_transform)[i] > ROTATE_SPEED) {
+    //         (*camera_per_tick_transform)[i] = ROTATE_SPEED;
+    //     } else if ((*camera_per_tick_transform)[i] < -ROTATE_SPEED) {       
+    //         (*camera_per_tick_transform)[i] = -ROTATE_SPEED;
+    //     }
+    // }
+}
+
+void negate_rotation(mat4* camera_per_tick_transform)
+{
+    float* x = camera_per_tick_transform[12];
+    float* y = camera_per_tick_transform[13];
+    float* z = camera_per_tick_transform[14];
+
+    mat4_identity(*camera_per_tick_transform);
+    mat4_translate(*camera_per_tick_transform, *x, *y, *z);
 }

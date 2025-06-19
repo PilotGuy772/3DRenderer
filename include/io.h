@@ -26,4 +26,8 @@ void handle_keyup(SDL_Keycode key, mat4* camera_per_tick_transform);
 /// @note This function should be called after all keypresses have been handled for the frame, and should be called once every frame.
 void clamp_movement(mat4* camera_per_tick_transform);
 
+/// @brief Utility function that zeroes all rotation, leaving only translation.
+/// @param camera_per_tick_transform The per-tick transformation matrix to be negated.
+void negate_rotation(mat4* camera_per_tick_transform);
+
 #endif // IO_H
