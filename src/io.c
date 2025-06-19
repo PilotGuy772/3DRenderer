@@ -2,8 +2,6 @@
 // and interpret into arrays of vertices and edges
 #include "io.h"
 
-#define MAX_VERTICES 10000
-#define MAX_INDICES 30000
 
 void read_model(char* filepath, vec3f** vertices, int** indices, int* num_vertices, int* num_indices)
 {
@@ -55,4 +53,71 @@ void read_model(char* filepath, vec3f** vertices, int** indices, int* num_vertic
     *indices = realloc(*indices, face_count * sizeof(int));
 
     fclose(file);
+}
+
+
+void handle_keypress(SDL_Keycode key, mat4* camera_transform)
+{
+    mat4 delta;
+    mat4_identity(delta);
+    // (translation only for now, rotation is... a challenge)
+    switch (key) {
+        case SDLK_w: // Move forward
+            mat4_translate(delta, 0.0f, 0.0f, -MOVE_SPEED);
+            break;
+        case SDLK_s: // Move backward
+            mat4_translate(delta, 0.0f, 0.0f, MOVE_SPEED);
+            break;
+        case SDLK_a: // Move left
+            mat4_translate(delta, -MOVE_SPEED, 0.0f, 0.0f);
+            break;
+        case SDLK_d: // Move right
+            mat4_translate(delta, MOVE_SPEED, 0.0f, 0.0f);
+            break;
+        default:
+            break;
+    }
+
+    // apply the delta to the camera transform
+    mat4_multiply(*camera_transform, delta, *camera_transform);
+}
+
+// this is the above but in reverse; it undoes the per-tick transform
+void handle_keyup(SDL_Keycode key, mat4* camera_transform)
+{
+    mat4 delta;
+    mat4_identity(delta);
+    // (translation only for now, rotation is... a challenge)
+    switch (key) {
+        case SDLK_w: // Move forward
+            mat4_translate(delta, 0.0f, 0.0f, MOVE_SPEED);
+            break;
+        case SDLK_s: // Move backward
+            mat4_translate(delta, 0.0f, 0.0f, -MOVE_SPEED);
+            break;
+        case SDLK_a: // Move left
+            mat4_translate(delta, MOVE_SPEED, 0.0f, 0.0f);
+            break;
+        case SDLK_d: // Move right
+            mat4_translate(delta, -MOVE_SPEED, 0.0f, 0.0f);
+            break;
+        default:
+            break;
+    }
+
+    // apply the delta to the camera transform
+    mat4_multiply(*camera_transform, delta, *camera_transform);
+}
+
+void clamp_movement(mat4 *camera_per_tick_transform)
+{
+    // NOTE: for now, only clamp translation.
+    // translation is at 13 14 15
+    for (int i = 12; i < 15; i++) {
+        if ((*camera_per_tick_transform)[i] > MOVE_SPEED) {
+            (*camera_per_tick_transform)[i] = MOVE_SPEED;
+        } else if ((*camera_per_tick_transform)[i] < -MOVE_SPEED) {
+            (*camera_per_tick_transform)[i] = -MOVE_SPEED;
+        }
+    }
 }

@@ -76,23 +76,33 @@ int main(int argc, char *argv[])
     // define a matrix for camera position
     // for now, back it up a bit and look at the origin
     mat4 camera_transform;
-    mat4 temp;
     mat4_identity(camera_transform);
-    mat4_rotate_x(temp, -M_PI / 6.0f); // look up a bit
-    mat4_multiply(camera_transform, temp, camera_transform);
-    mat4_translate(temp, 0.0f, -0.5f, 5.0f);
-    mat4_multiply(camera_transform, temp, camera_transform);
-    printf("Camera transform:\n");
-    mat4_print(camera_transform);
+    mat4_translate(camera_transform, 0.0f, 0.0f, 6.0f);
+
+    mat4 camera_per_tick_transform;
+    mat4_identity(camera_per_tick_transform);
 
     int running = 1;
     SDL_Event event;
     while (running)
     {
-        // temp-- end loop immediately after one iteration
+
         while(SDL_PollEvent(&event))
         {
-            if (event.type == SDL_QUIT) running = 0;
+            switch(event.type)
+            {
+                case SDL_QUIT:
+                    running = 0;
+                    break;
+                case SDL_KEYDOWN:
+                    handle_keypress(event.key.keysym.sym, &camera_per_tick_transform);
+                    break;
+                case SDL_KEYUP:
+                    handle_keyup(event.key.keysym.sym, &camera_per_tick_transform);
+                    break;
+                default:
+                    break;
+            }
         }        
 
         SDL_Delay(16);
@@ -106,8 +116,12 @@ int main(int argc, char *argv[])
         drawer_clear_buffer(image);
 
         //mat4_translate(camera_transform, 0, 0, camera_transform[14] - 0.004f);
-        // spin the model
         mat4_multiply(transform, change, transform);
+        clamp_movement(&camera_per_tick_transform);
+        mat4_multiply(camera_transform, camera_per_tick_transform, camera_transform);
+
+        // print stats
+        printf("Camera position: (%f, %f, %f)\n", camera_transform[12], camera_transform[13], camera_transform[14]);
     }
 
     //printf("p1: %d %d\np2: %d %d\np3: %d %d\n", p1.x, p1.y, p2.x, p2.y, p3.x, p3.y);
@@ -124,15 +138,13 @@ void render_model(uint32_t* image, vec3f* vertices, int num_vertices, int* indic
     vec4f* vertices_w = malloc(num_vertices * sizeof(vec4f));
     model_add_w(vertices, num_vertices, vertices_w);
     world_from_model(vertices_w, num_vertices, transform, world_vertices);
-    printf("Vertices in world space:\n");
-    print_vertices(world_vertices, num_vertices);
+    
 
     // 2. transform into camera space
     vec4f* camera_vertices = malloc(num_vertices * sizeof(vec4f));
     camera_from_world(camera_transform, world_vertices, num_vertices, camera_vertices);
 
-    printf("Vertices in camera space:\n");
-    print_vertices(camera_vertices, num_vertices);
+    
 
     // 3. transform into clip space
     // we need to decide on some camera constants too (znear, zfar, fov, aspect)
@@ -143,8 +155,7 @@ void render_model(uint32_t* image, vec3f* vertices, int num_vertices, int* indic
     vec4f* clip_vertices = malloc(num_vertices * sizeof(vec4f));
     clip_from_camera(camera_vertices, num_vertices, fov, aspect, znear, zfar, clip_vertices);
 
-    printf("Vertices in clip space:\n");
-    print_vertices(clip_vertices, num_vertices);
+    
 
     // 4. transform into NDC
     // this is simple enough that we can do it in place
@@ -155,8 +166,7 @@ void render_model(uint32_t* image, vec3f* vertices, int num_vertices, int* indic
         clip_vertices[i].z /= clip_vertices[i].w;
     }
 
-    printf("Vertices in NDC:\n");
-    print_vertices(clip_vertices, num_vertices);
+    
 
     // culling!!
     // 4.5. cull triangles that are outside the view frustum
@@ -169,13 +179,12 @@ void render_model(uint32_t* image, vec3f* vertices, int num_vertices, int* indic
                             &culled_indices, &tmp_num_indices);
     num_vertices = tmp_num_vertices;
     num_indices = tmp_num_indices;
-    printf("Culled!\n");
+    
 
     // 5. transform into screen space
     vec4f* screen_vertices = malloc(num_vertices * sizeof(vec4f));
     screenspace_from_ndc(culled_vertices, num_vertices, znear, zfar, screen_vertices);
-    printf("Vertices in screen space:\n");
-    print_vertices(screen_vertices, num_vertices);
+   
 
     // finally, 6. assemble and draw triangles
     screenspace_draw_model(screen_vertices, num_indices, culled_indices, image);

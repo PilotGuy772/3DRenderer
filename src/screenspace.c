@@ -2,9 +2,7 @@
 
 void screenspace_draw_triangle(uint32_t* image, triangle tri)
 {
-    printf("Drawing triangle: A(%d, %d), B(%d, %d), C(%d, %d)\n", 
-           tri.a.x, tri.a.y, tri.b.x, tri.b.y, tri.c.x, tri.c.y);
-
+    
     screenspace_draw_line(image, tri.a, tri.b);
     screenspace_draw_line(image, tri.b, tri.c);
     screenspace_draw_line(image, tri.c, tri.a);
