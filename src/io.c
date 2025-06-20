@@ -2,6 +2,7 @@
 // and interpret into arrays of vertices and edges
 #include "io.h"
 
+int* key_states; // 0 = not pressed, 1 = pressed
 
 void read_model(char* filepath, vec3f** vertices, int** indices, int* num_vertices, int* num_indices)
 {
@@ -56,56 +57,67 @@ void read_model(char* filepath, vec3f** vertices, int** indices, int* num_vertic
 }
 
 
-void handle_keypress(SDL_Keycode key, vec3f* pos, quat* rot)
+void tick_transform(vec3f* pos, quat* rot)
 {
     mat4 delta;
     mat4_identity(delta);
     // (translation only for now, rotation is... a challenge)
-    switch (key) {
-        // translation
-        case SDLK_w: // Move forward
-            vec3f forward = quat_forward(*rot);
-            vec3_add_scaled(pos, &forward, MOVE_SPEED);
-            break;
-        case SDLK_s: // Move backward
-            vec3f forward = quat_forward(*rot);
-            vec3_add_scaled(pos, &forward, -MOVE_SPEED);
-            break;
-        case SDLK_a: // Move left
-            vec3f right = quat_right(*rot);
-            vec3_add_scaled(pos, &right, -MOVE_SPEED);
-            break;
-        case SDLK_d: // Move right
-            vec3f right = quat_right(*rot);
-            vec3_add_scaled(pos, &right, MOVE_SPEED);
-            break;
-        case SDLK_q: // move up
-            vec3f up = quat_up(*rot);
-            vec3_add_scaled(pos, &up, MOVE_SPEED);
-            break;
-        case SDLK_e: // move down
-            vec3f up = quat_up(*rot);
-            vec3_add_scaled(pos, &up, -MOVE_SPEED);
-            break;
+    for (int i = 0; i < SDL_NUM_SCANCODES; i++) {
+        if (key_states[i] == 0) {
+            continue; // key not pressed
+        }
+        SDL_Keycode key = (SDL_Keycode)i;
+        vec3f dir;
+        switch (key) {
+            // translation
+            case SDLK_w: // Move forward
+                dir = quat_forward(*rot);
+                vec3_add_scaled(pos, &dir, MOVE_SPEED);
+                break;
+            case SDLK_s: // Move backward
+                dir = quat_forward(*rot);
+                vec3_add_scaled(pos, &dir, -MOVE_SPEED);
+                break;
+            case SDLK_a: // Move left
+                dir = quat_right(*rot);
+                vec3_add_scaled(pos, &dir, -MOVE_SPEED);
+                break;
+            case SDLK_d: // Move right
+                dir = quat_right(*rot);
+                vec3_add_scaled(pos, &dir, MOVE_SPEED);
+                break;
+            case SDLK_q: // move up
+                dir = quat_up(*rot);
+                vec3_add_scaled(pos, &dir, MOVE_SPEED);
+                break;
+            case SDLK_e: // move down
+                dir = quat_up(*rot);
+                vec3_add_scaled(pos, &dir, -MOVE_SPEED);
+                break;
 
-        // rotation
-        case SDLK_LEFT: // Rotate left
-            rot = quat_multiply(quat_from_axis_angle((vec3f){0.0f, 1.0f, 0.0f}, ROTATE_SPEED), *rot);
-            break;
-        case SDLK_RIGHT: // Rotate right
-            rot = quat_multiply(quat_from_axis_angle((vec3f){0.0f, 1.0f, 0.0f}, -ROTATE_SPEED), *rot);
-            break;
-        case SDLK_UP: // Rotate up
-            rot = quat_multiply(quat_from_axis_angle((vec3f){1.0f, 0.0f, 0.0f}, -ROTATE_SPEED), *rot);
-            break;
-        case SDLK_DOWN: // Rotate down
-            rot = quat_multiply(quat_from_axis_angle((vec3f){1.0f, 0.0f, 0.0f}, ROTATE_SPEED), *rot);
-        default:
-            break;
+            // rotation
+            case SDLK_j: // Rotate left
+                *rot = quat_multiply(quat_from_axis_angle((vec3f){0.0f, 1.0f, 0.0f}, ROTATE_SPEED), *rot);
+                break;
+            case SDLK_l: // Rotate right
+                *rot = quat_multiply(quat_from_axis_angle((vec3f){0.0f, 1.0f, 0.0f}, -ROTATE_SPEED), *rot);
+                break;
+            case SDLK_i: // Rotate up
+                *rot = quat_multiply(quat_from_axis_angle((vec3f){1.0f, 0.0f, 0.0f}, -ROTATE_SPEED), *rot);
+                break;
+            case SDLK_k: // Rotate down
+                *rot = quat_multiply(quat_from_axis_angle((vec3f){1.0f, 0.0f, 0.0f}, ROTATE_SPEED), *rot);
+                break;
+            case SDLK_u: // Rotate counter-clockwise
+                *rot = quat_multiply(quat_from_axis_angle((vec3f){0.0f, 0.0f, 1.0f}, ROTATE_SPEED), *rot);
+                break;
+            case SDLK_o: // Rotate clockwise
+                *rot = quat_multiply(quat_from_axis_angle((vec3f){0.0f, 0.0f, 1.0f}, -ROTATE_SPEED), *rot);
+                break;
+            default:
+                break;
+        }
     }
-
-    // apply the delta to the camera transform
-   //mat4_multiply(*camera_transform, delta, *camera_transform);
 }
 
 // this is the above but in reverse; it undoes the per-tick transform
@@ -174,4 +186,18 @@ void clamp_movement(mat4 *camera_per_tick_transform)
     //         (*camera_per_tick_transform)[i] = -ROTATE_SPEED;
     //     }
     // }
+}
+
+void keydown(SDL_Keycode key)
+{
+    if (key_states[key] == 0) {
+        key_states[key] = 1;
+    }
+}
+
+void keyup(SDL_Keycode key)
+{
+    if (key_states[key] == 1) {
+        key_states[key] = 0;
+    }
 }

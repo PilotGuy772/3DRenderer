@@ -29,8 +29,10 @@ int main(int argc, char *argv[])
 {    
     SDL_Init(SDL_INIT_VIDEO);
 
-    int width = 1920;
-    int height = 1080;
+    key_states = malloc(SDL_NUM_SCANCODES * sizeof(int));
+
+    int width = 640;
+    int height = 480;
 
     drawer_init(width, height);
 
@@ -75,12 +77,14 @@ int main(int argc, char *argv[])
 
     // define a matrix for camera position
     // for now, back it up a bit and look at the origin
-    mat4 camera_transform;
-    mat4_identity(camera_transform);
-    mat4_translate(camera_transform, 0.0f, 0.0f, 6.0f);
+    // mat4 camera_transform;
+    // mat4_identity(camera_transform);
+    // mat4_translate(camera_transform, 0.0f, 0.0f, 6.0f);
 
-    mat4 camera_per_tick_transform;
-    mat4_identity(camera_per_tick_transform);
+    // mat4 camera_per_tick_transform;
+    // mat4_identity(camera_per_tick_transform);
+    vec3f camera_pos = {0.0f, 0.0f, 6.0f};
+    quat camera_rot = {1.0f, 0.0f, 0.0f, 0.0f}; // identity quaternion
 
     int running = 1;
     SDL_Event event;
@@ -95,10 +99,10 @@ int main(int argc, char *argv[])
                     running = 0;
                     break;
                 case SDL_KEYDOWN:
-                    handle_keypress(event.key.keysym.sym, &camera_per_tick_transform);
+                    keydown(event.key.keysym.sym);
                     break;
                 case SDL_KEYUP:
-                    handle_keyup(event.key.keysym.sym, &camera_per_tick_transform);
+                    keyup(event.key.keysym.sym);
                     break;
                 default:
                     break;
@@ -109,19 +113,23 @@ int main(int argc, char *argv[])
 
         // basic render pipeline track, using the model defined above for testing
 
-        render_model(image, vertices, num_vertices, indices, num_indices, transform, camera_transform, width, height);
+        render_model(image, vertices, num_vertices, indices, num_indices, transform, camera_pos, camera_rot, width, height);
 
         //screenspace_plot_point(image, (screen_point){width / 2, height / 2});
         drawer_draw_buffer(image);
         drawer_clear_buffer(image);
 
         //mat4_translate(camera_transform, 0, 0, camera_transform[14] - 0.004f);
-        mat4_multiply(transform, change, transform);
-        clamp_movement(&camera_per_tick_transform);
-        mat4_multiply(camera_transform, camera_per_tick_transform, camera_transform);
+        // mat4_multiply(transform, change, transform);
+        // clamp_movement(&camera_per_tick_transform);
+        // mat4_multiply(camera_transform, camera_per_tick_transform, camera_transform);
+
+        // camera control
+        tick_transform(&camera_pos, &camera_rot);
 
         // print stats
-        printf("Camera position: (%f, %f, %f)\n", camera_transform[12], camera_transform[13], camera_transform[14]);
+        printf("Camera position: (%f, %f, %f)\n", camera_pos.x, camera_pos.y, camera_pos.z);
+        printf("Camera rotation: (%f, %f, %f, %f)\n", camera_rot.w, camera_rot.x, camera_rot.y, camera_rot.z);
     }
 
     //printf("p1: %d %d\np2: %d %d\np3: %d %d\n", p1.x, p1.y, p2.x, p2.y, p3.x, p3.y);
@@ -130,7 +138,7 @@ int main(int argc, char *argv[])
     return 0;
 }
 
-void render_model(uint32_t* image, vec3f* vertices, int num_vertices, int* indices, int num_indices, mat4 transform, mat4 camera_transform, int width, int height)
+void render_model(uint32_t* image, vec3f* vertices, int num_vertices, int* indices, int num_indices, mat4 transform, vec3f camera_pos, quat camera_rot, int width, int height)
 {
     // 1. translate into world space
     vec4f* world_vertices = malloc(num_vertices * sizeof(vec4f));
@@ -142,7 +150,7 @@ void render_model(uint32_t* image, vec3f* vertices, int num_vertices, int* indic
 
     // 2. transform into camera space
     vec4f* camera_vertices = malloc(num_vertices * sizeof(vec4f));
-    camera_from_world(camera_transform, world_vertices, num_vertices, camera_vertices);
+    camera_from_world(camera_pos, camera_rot, world_vertices, num_vertices, camera_vertices);
 
     
 

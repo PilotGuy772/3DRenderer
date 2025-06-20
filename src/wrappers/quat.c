@@ -103,4 +103,13 @@ void quat_to_mat4(quat q, mat4 out) {
     out[14] = 0.0f;
     out[15] = 1.0f;
 }
- 
+
+quat quat_conjugate(quat q)
+{
+    quat result;
+    result.w = q.w;
+    result.x = -q.x;
+    result.y = -q.y;
+    result.z = -q.z;
+    return result;
+}
