@@ -114,6 +114,11 @@ void tick_transform(vec3f* pos, quat* rot)
             case SDLK_o: // Rotate clockwise
                 *rot = quat_multiply(quat_from_axis_angle((vec3f){0.0f, 0.0f, 1.0f}, -ROTATE_SPEED), *rot);
                 break;
+
+            // special inputs
+            case SDLK_SPACE: // renorm rotation
+                *rot = (quat){1.0f, 0.0f, 0.0f, 0.0f};
+                break;
             default:
                 break;
         }

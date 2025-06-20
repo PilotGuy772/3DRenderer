@@ -72,7 +72,7 @@ int main(int argc, char *argv[])
     // this is the delta every frame; this matrix is applied to the transform every frame
     mat4 change;
     mat4_rotate_y(change, 0.01f);
-    mat4_translate(change, 0.004f, 0.0f, 0.0f); // move back a bit every frame
+    
     
 
     // define a matrix for camera position
@@ -120,7 +120,7 @@ int main(int argc, char *argv[])
         drawer_clear_buffer(image);
 
         //mat4_translate(camera_transform, 0, 0, camera_transform[14] - 0.004f);
-        // mat4_multiply(transform, change, transform);
+        mat4_multiply(transform, change, transform);
         // clamp_movement(&camera_per_tick_transform);
         // mat4_multiply(camera_transform, camera_per_tick_transform, camera_transform);
 
