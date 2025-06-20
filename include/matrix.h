@@ -65,4 +65,6 @@ void mat4_inverse(const mat4 m, mat4 out);
 
 void mat4_print(const mat4 m);
 
+void vec3_add_scaled(vec3f* a, vec3f* b, float scale);
+
 #endif

@@ -56,7 +56,7 @@ void read_model(char* filepath, vec3f** vertices, int** indices, int* num_vertic
 }
 
 
-void handle_keypress(SDL_Keycode key, mat4* camera_transform)
+void handle_keypress(SDL_Keycode key, vec3f* pos, quat* rot)
 {
     mat4 delta;
     mat4_identity(delta);
@@ -64,42 +64,48 @@ void handle_keypress(SDL_Keycode key, mat4* camera_transform)
     switch (key) {
         // translation
         case SDLK_w: // Move forward
-            mat4_translate(delta, 0.0f, 0.0f, -MOVE_SPEED);
+            vec3f forward = quat_forward(*rot);
+            vec3_add_scaled(pos, &forward, MOVE_SPEED);
             break;
         case SDLK_s: // Move backward
-            mat4_translate(delta, 0.0f, 0.0f, MOVE_SPEED);
+            vec3f forward = quat_forward(*rot);
+            vec3_add_scaled(pos, &forward, -MOVE_SPEED);
             break;
         case SDLK_a: // Move left
-            mat4_translate(delta, -MOVE_SPEED, 0.0f, 0.0f);
+            vec3f right = quat_right(*rot);
+            vec3_add_scaled(pos, &right, -MOVE_SPEED);
             break;
         case SDLK_d: // Move right
-            mat4_translate(delta, MOVE_SPEED, 0.0f, 0.0f);
+            vec3f right = quat_right(*rot);
+            vec3_add_scaled(pos, &right, MOVE_SPEED);
             break;
         case SDLK_q: // move up
-            mat4_translate(delta, 0.0f, MOVE_SPEED, 0.0f);
+            vec3f up = quat_up(*rot);
+            vec3_add_scaled(pos, &up, MOVE_SPEED);
             break;
         case SDLK_e: // move down
-            mat4_translate(delta, 0.0f, -MOVE_SPEED, 0.0f);
+            vec3f up = quat_up(*rot);
+            vec3_add_scaled(pos, &up, -MOVE_SPEED);
             break;
 
         // rotation
         case SDLK_LEFT: // Rotate left
-            mat4_rotate_y(delta, -ROTATE_SPEED);
+            rot = quat_multiply(quat_from_axis_angle((vec3f){0.0f, 1.0f, 0.0f}, ROTATE_SPEED), *rot);
             break;
         case SDLK_RIGHT: // Rotate right
-            mat4_rotate_y(delta, ROTATE_SPEED);
+            rot = quat_multiply(quat_from_axis_angle((vec3f){0.0f, 1.0f, 0.0f}, -ROTATE_SPEED), *rot);
             break;
         case SDLK_UP: // Rotate up
-            mat4_rotate_x(delta, -ROTATE_SPEED);
+            rot = quat_multiply(quat_from_axis_angle((vec3f){1.0f, 0.0f, 0.0f}, -ROTATE_SPEED), *rot);
             break;
         case SDLK_DOWN: // Rotate down
-            mat4_rotate_x(delta, ROTATE_SPEED);
+            rot = quat_multiply(quat_from_axis_angle((vec3f){1.0f, 0.0f, 0.0f}, ROTATE_SPEED), *rot);
         default:
             break;
     }
 
     // apply the delta to the camera transform
-    mat4_multiply(*camera_transform, delta, *camera_transform);
+   //mat4_multiply(*camera_transform, delta, *camera_transform);
 }
 
 // this is the above but in reverse; it undoes the per-tick transform
@@ -168,14 +174,4 @@ void clamp_movement(mat4 *camera_per_tick_transform)
     //         (*camera_per_tick_transform)[i] = -ROTATE_SPEED;
     //     }
     // }
-}
-
-void negate_rotation(mat4* camera_per_tick_transform)
-{
-    float* x = camera_per_tick_transform[12];
-    float* y = camera_per_tick_transform[13];
-    float* z = camera_per_tick_transform[14];
-
-    mat4_identity(*camera_per_tick_transform);
-    mat4_translate(*camera_per_tick_transform, *x, *y, *z);
 }

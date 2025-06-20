@@ -3,6 +3,7 @@
         "drawer.h": "c",
         "screenspace.h": "c",
         "math.h": "c",
-        "culling.h": "c"
+        "culling.h": "c",
+        "io.h": "c"
     }
 }

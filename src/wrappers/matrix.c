@@ -138,3 +138,10 @@ void mat4_print(const mat4 m)
     printf("| %6.2f %6.2f %6.2f %6.2f |\n",
                m[3], m[7], m[11], m[15]);
 }
+
+void vec3_add_scaled(vec3f* a, vec3f* b, float scale)
+{
+    a->x = a->x + b->x * scale;
+    a->y = a->y + b->y * scale;
+    a->z = a->z + b->z * scale;
+}
