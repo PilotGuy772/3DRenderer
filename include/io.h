@@ -10,7 +10,7 @@
 #define MAX_VERTICES 10000
 #define MAX_INDICES 30000
 #define MOVE_SPEED 0.1f
-#define ROTATE_SPEED 0.05f // <- in radians
+#define ROTATE_SPEED 0.01f // <- in radians
 
 void read_model(char* filepath, vec3f** vertices, int** indices, int* num_vertices, int* num_indices);
 

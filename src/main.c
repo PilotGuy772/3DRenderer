@@ -29,8 +29,8 @@ int main(int argc, char *argv[])
 {    
     SDL_Init(SDL_INIT_VIDEO);
 
-    int width = 800;
-    int height = 600;
+    int width = 1920;
+    int height = 1080;
 
     drawer_init(width, height);
 
@@ -70,7 +70,7 @@ int main(int argc, char *argv[])
     // this is the delta every frame; this matrix is applied to the transform every frame
     mat4 change;
     mat4_rotate_y(change, 0.01f);
-    
+    mat4_translate(change, 0.004f, 0.0f, 0.0f); // move back a bit every frame
     
 
     // define a matrix for camera position
