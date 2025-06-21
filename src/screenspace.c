@@ -1,5 +1,7 @@
 #include "screenspace.h"
 
+float* depth_buffer;
+
 void screenspace_draw_triangle(uint32_t* image, triangle tri)
 {
     
@@ -8,7 +10,7 @@ void screenspace_draw_triangle(uint32_t* image, triangle tri)
     screenspace_draw_line(image, tri.c, tri.a);
 }
 
-void screenspace_draw_line(uint32_t* image, screen_point p1, screen_point p2)
+void screenspace_draw_line(uint32_t* image, vec4f p1, vec4f p2)
 {
     /*
         1. Extrapolate the slope of the line
@@ -17,26 +19,11 @@ void screenspace_draw_line(uint32_t* image, screen_point p1, screen_point p2)
         4. Copy it on!
     */
 
-    // give one pixel of buffer with the edge of the screen
-    // if (p1.x <= 0) p1.x = 1;
-    // if (p1.x >= window_width - 1) p1.x = window_width - 2;
-    // if (p1.y <= 0) p1.y = 1;
-    // if (p1.y >= window_height - 1) p1.y = window_height - 2;
-    // if (p2.x <= 0) p2.x = 1;
-    // if (p2.x >= window_width - 1) p2.x = window_width - 2;
-    // if (p2.y <= 0) p2.y = 1;
-    // if (p2.y >= window_height - 1) p2.y = window_height - 2;
-
-    //p1 MUST be further to the left! If not, call this function again with parameters swapped, then return.
-    if (p1.x == p2.x)
-    {
-        screenspace_draw_vertical_line(image, p1, p2);
-        return;
-    }
-
     //float slope = (float)(p2.y - p1.y) / (p2.x - p1.x);
     int dy = p2.y - p1.y;
     int dx = p2.x - p1.x;
+    // dz is not used for rendering, but we use it for z-buffering
+    int dz = p2.z - p1.z;
     // equation is y = m(x - x1) + y1
     // which equates to y = slope * (x - p1.x) + p1.y
     
@@ -44,38 +31,46 @@ void screenspace_draw_line(uint32_t* image, screen_point p1, screen_point p2)
     {
         if (p1.x > p2.x)
         {
-            screen_point tmp = p1;
+            vec4f tmp = p1;
             p1 = p2;
             p2 = tmp;
         }
 
+        float z = p1.z;
         for (int x = p1.x; x <= p2.x; x++)
         {
             int y = (int) (((float)dy / dx) * (x - p1.x) + p1.y);
-            image[y * window_width + x] = 0xFF00FF00;
+            screenspace_add_point_depth((vec4f){x, y, z, 1.0f}, image);
+
+            // add to z according to dz
+            z += ((float)dz / dx) * (x - p1.x);
         }
     }    
     else
     {
         if (p1.y > p2.y)
         {
-            screen_point tmp = p1;
+            vec4f tmp = p1;
             p1 = p2;
             p2 = tmp;
         }
 
+        float z = p1.z;
         for (int y = p1.y; y <= p2.y; y++)
         {
             int x = (int) (((float)dx / dy) * (y - p1.y) + p1.x);
-            image[y * window_width + x] = 0xFF00FF00;
+            screenspace_add_point_depth((vec4f){x, y, z, 1.0f}, image);
+
+            // add to z according to dz (this time in terms of dy)
+            z += ((float)dz / dy) * (y - p1.y);
         }
     }
 
-    screenspace_plot_point(image, p1);
-    screenspace_plot_point(image, p2);
+    // screenspace_plot_point(image, p1);
+    // screenspace_plot_point(image, p2);
 }
 
-void screenspace_draw_vertical_line(uint32_t* image, screen_point p1, screen_point p2)
+void screenspace_draw_vertical_line(uint32_t* image, vec4f p1, vec4f p2)
 {
     if (p1.x != p2.x) return;
     if (p1.y > p2.y)
@@ -86,7 +81,7 @@ void screenspace_draw_vertical_line(uint32_t* image, screen_point p1, screen_poi
 
     for (int y = p1.y; y <= p2.y; y++)
     {
-        image[y * window_width + p1.x] = 0xFF00FF00;
+        image[(int)round(y) * window_width + (int)round(p1.x)] = 0xFF00FF00;
     }
 }
 
@@ -130,10 +125,28 @@ void screenspace_draw_model(vec4f* screen_vertices, int num_indices, int* ibo, u
     for (int i = 0; i < num_indices; i += 3)
     {
         triangle tri = {
-            {screen_vertices[ibo[i]].x, screen_vertices[ibo[i]].y},
-            {screen_vertices[ibo[i + 1]].x, screen_vertices[ibo[i + 1]].y},
-            {screen_vertices[ibo[i + 2]].x, screen_vertices[ibo[i + 2]].y}
+            screen_vertices[ibo[i]],
+            screen_vertices[ibo[i + 1]],
+            screen_vertices[ibo[i + 2]]
         };
         screenspace_draw_triangle(image, tri);
+    }
+}
+
+void screenspace_add_point_depth(vec4f point, uint32_t* image)
+{
+    if (point.z < depth_buffer[((int)round(point.y) * window_width) + (int)round(point.x)])
+    {
+        depth_buffer[((int)round(point.y) * window_width) + (int)round(point.x)] = point.z;
+        image[((int)round(point.y) * window_width) + (int)round(point.x)] = 0xFF00FF00;
+    }
+}
+
+void screenspace_clear_depth_buffer(int width, int height)
+{
+    depth_buffer = malloc(width * height * sizeof(float));
+    for (int i = 0; i < width * height; i++)
+    {
+        depth_buffer[i] = 1.0f;
     }
 }

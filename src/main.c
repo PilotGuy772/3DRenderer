@@ -194,7 +194,7 @@ void render_model(uint32_t* image, vec3f* vertices, int num_vertices, int* indic
    
 
     // finally, 6. assemble and draw triangles
- 
+    screenspace_clear_depth_buffer(width, height);
     screenspace_draw_model(screen_vertices, num_indices, culled_indices, image);
     
 

@@ -117,6 +117,9 @@ void tick_transform(vec3f* pos, quat* rot)
                 *pos = (vec3f){0.0f, 0.0f, 6.0f};
                 *rot = (quat){1.0f, 0.0f, 0.0f, 0.0f};
                 break;
+            case SDLK_ESCAPE: // Exit the application
+                exit(0);
+                break;
             default:
                 break;
         }
