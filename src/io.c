@@ -96,27 +96,25 @@ void tick_transform(vec3f* pos, quat* rot)
                 break;
 
             // rotation
+            // y-axis rotation uses the global axis
             case SDLK_j: // Rotate left
                 *rot = quat_multiply(quat_from_axis_angle((vec3f){0.0f, 1.0f, 0.0f}, ROTATE_SPEED), *rot);
                 break;
             case SDLK_l: // Rotate right
                 *rot = quat_multiply(quat_from_axis_angle((vec3f){0.0f, 1.0f, 0.0f}, -ROTATE_SPEED), *rot);
                 break;
+
+            // x-axis rotation uses the local axis
             case SDLK_i: // Rotate up
-                *rot = quat_multiply(quat_from_axis_angle((vec3f){1.0f, 0.0f, 0.0f}, -ROTATE_SPEED), *rot);
+                *rot = quat_multiply(quat_from_axis_angle(quat_right(*rot), -ROTATE_SPEED), *rot);
                 break;
             case SDLK_k: // Rotate down
-                *rot = quat_multiply(quat_from_axis_angle((vec3f){1.0f, 0.0f, 0.0f}, ROTATE_SPEED), *rot);
-                break;
-            case SDLK_u: // Rotate counter-clockwise
-                *rot = quat_multiply(quat_from_axis_angle((vec3f){0.0f, 0.0f, 1.0f}, ROTATE_SPEED), *rot);
-                break;
-            case SDLK_o: // Rotate clockwise
-                *rot = quat_multiply(quat_from_axis_angle((vec3f){0.0f, 0.0f, 1.0f}, -ROTATE_SPEED), *rot);
+                *rot = quat_multiply(quat_from_axis_angle(quat_right(*rot), ROTATE_SPEED), *rot);
                 break;
 
             // special inputs
-            case SDLK_SPACE: // renorm rotation
+            case SDLK_SPACE: // Reset position and rotation
+                *pos = (vec3f){0.0f, 0.0f, 6.0f};
                 *rot = (quat){1.0f, 0.0f, 0.0f, 0.0f};
                 break;
             default:

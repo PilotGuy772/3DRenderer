@@ -152,3 +152,10 @@ int vec3_collinear(vec3f a, vec3f b, vec3f c, float epsilon)
     float area = (b.x - a.x) * (c.y - a.y) - (b.y - a.y) * (c.x - a.x);
     return fabs(area) < epsilon;
 }
+
+int vec4_collinear(vec4f a, vec4f b, vec4f c, float epsilon)
+{
+    // Check if the points a, b, c are collinear within a given epsilon
+    float area = (b.x - a.x) * (c.y - a.y) - (b.y - a.y) * (c.x - a.x);
+    return fabs(area) < epsilon;
+}

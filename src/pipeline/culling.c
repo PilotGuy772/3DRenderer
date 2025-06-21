@@ -20,15 +20,17 @@
 #include "culling.h"
 
 
-void culling_cull_triangle(vec4f* vertices, int num_vertices, int* indices, int num_indices, vec4f** out_vertices, int* out_num_vertices, int** out_indices, int* out_num_indices)
+void culling_cull_triangle(vec4f* vertices, int num_vertices, int* indices, int num_indices,
+                           vec4f** out_vertices, int* out_num_vertices,
+                           int** out_indices, int* out_num_indices)
 {
-    int vertex_alloc = num_vertices * 2; // starting guess
-    int index_alloc = num_indices * 2;
+    int vertex_alloc = num_vertices * 3;
+    int index_alloc = num_indices * 3;
 
-    *out_num_vertices = 0;
-    *out_num_indices = 0;
     *out_vertices = malloc(vertex_alloc * sizeof(vec4f));
     *out_indices = malloc(index_alloc * sizeof(int));
+    *out_num_vertices = 0;
+    *out_num_indices = 0;
 
     if (!*out_vertices || !*out_indices) {
         fprintf(stderr, "Memory allocation failed!\n");
@@ -37,172 +39,40 @@ void culling_cull_triangle(vec4f* vertices, int num_vertices, int* indices, int 
 
     for (int i = 0; i < num_indices; i += 3)
     {
-        int v1_index = indices[i];
-        int v2_index = indices[i + 1];
-        int v3_index = indices[i + 2];
+        vec4f v0 = vertices[indices[i + 0]];
+        vec4f v1 = vertices[indices[i + 1]];
+        vec4f v2 = vertices[indices[i + 2]];
 
-        vec4f v1 = vertices[v1_index];
-        vec4f v2 = vertices[v2_index];
-        vec4f v3 = vertices[v3_index];
+        vec4f clipped[MAX_VERTS_PER_TRI];
+        int clipped_count = 0;
+        clip_triangle(v0, v1, v2, clipped, &clipped_count);
 
-        int v1_in = culling_check_point_in_range(v1);
-        int v2_in = culling_check_point_in_range(v2);
-        int v3_in = culling_check_point_in_range(v3);
+        if (clipped_count == 0)
+            continue;
 
-        int num_inside = v1_in + v2_in + v3_in;
-
-        int needed_vertices = 0;
-        int needed_indices = 0;
-
-        if (num_inside == 1)
-        {
-            needed_vertices = 3;
-            needed_indices = 3;
-        }
-        else if (num_inside == 2)
-        {
-            needed_vertices = 6;
-            needed_indices = 6;
-        }
-        else if (num_inside == 3)
-        {
-            needed_vertices = 3;
-            needed_indices = 3;
-        }
-
-        // Check and grow allocations if needed
-        if (*out_num_vertices + needed_vertices > vertex_alloc) {
-            vertex_alloc *= 2;
-            *out_vertices = realloc(*out_vertices, vertex_alloc * sizeof(vec4f));
-            if (!*out_vertices) {
-                fprintf(stderr, "Realloc vertices failed!\n");
-                exit(1);
+        int base = *out_num_vertices;
+        for (int j = 0; j < clipped_count; j++) {
+            if (*out_num_vertices >= vertex_alloc) {
+                vertex_alloc *= 2;
+                *out_vertices = realloc(*out_vertices, vertex_alloc * sizeof(vec4f));
+                if (!*out_vertices) { fprintf(stderr, "Realloc vertices failed!\n"); exit(1); }
             }
+            (*out_vertices)[*out_num_vertices] = clipped[j];
+            (*out_num_vertices)++;
         }
 
-        if (*out_num_indices + needed_indices > index_alloc) {
+        int index_start = *out_num_indices;
+        int index_count = 0;
+        triangulate_polygon(clipped, clipped_count, *out_indices + index_start, &index_count, base);
+        *out_num_indices += index_count;
+
+        if (*out_num_indices >= index_alloc) {
             index_alloc *= 2;
             *out_indices = realloc(*out_indices, index_alloc * sizeof(int));
-            if (!*out_indices) {
-                fprintf(stderr, "Realloc indices failed!\n");
-                exit(1);
-            }
-        }
-
-        if (num_inside == 0)
-        {
-            continue; // discard
-        }
-        else if (num_inside == 1)
-        {
-            vec4f inside, i1, i2;
-            if (v1_in) {
-                inside = v1;
-                culling_find_line_intersection(v2, v1, &i1);
-                culling_find_line_intersection(v3, v1, &i2);
-            } else if (v2_in) {
-                inside = v2;
-                culling_find_line_intersection(v1, v2, &i1);
-                culling_find_line_intersection(v3, v2, &i2);
-            } else {
-                inside = v3;
-                culling_find_line_intersection(v1, v3, &i1);
-                culling_find_line_intersection(v2, v3, &i2);
-            }
-
-            int base = *out_num_vertices;
-            (*out_vertices)[base] = inside;
-            (*out_vertices)[base + 1] = i1;
-            (*out_vertices)[base + 2] = i2;
-
-            (*out_indices)[*out_num_indices + 0] = base;
-            (*out_indices)[*out_num_indices + 1] = base + 1;
-            (*out_indices)[*out_num_indices + 2] = base + 2;
-
-            *out_num_vertices += 3;
-            *out_num_indices += 3;
-        }
-        else if (num_inside == 2)
-        {
-            vec4f in1, in2, out, i1, i2;
-
-            if (!v1_in) {
-                out = v1; in1 = v2; in2 = v3;
-                culling_find_line_intersection(v1, v2, &i1);
-                culling_find_line_intersection(v1, v3, &i2);
-            } else if (!v2_in) {
-                out = v2; in1 = v1; in2 = v3;
-                culling_find_line_intersection(v2, v1, &i1);
-                culling_find_line_intersection(v2, v3, &i2);
-            } else {
-                out = v3; in1 = v1; in2 = v2;
-                culling_find_line_intersection(v3, v1, &i1);
-                culling_find_line_intersection(v3, v2, &i2);
-            }
-
-            /*
-                We have to make one triangle with the two inside vertices and an intersection point,
-                and one triangle with the two intersection points and one inside vertex.
-                UNFORTUNATELY: what I didn't realize before is that it DOES matter which inside vertex we use!
-                We have to use the one that's OPPOSITE the intersection point we used for the triangle
-                that uses one intersection point and the two inside vertices.
-
-                How do we determine which inside vertex to use?
-                Well, if we have two inside vertices in1 and in2, one outside vertex out, and two intersection points i1 and i2,
-                we can tell whether an intersection point shares a face with an inside vertex by checking if the
-                intersection point is collinear with the inside vertex and the outside vertex.
-
-                So: Triangle 1 will ALWAYS be made with in1, in2, and i1.
-
-                Triangle 2 will be made with i1 and i2
-                We determine whether in1 is collinear with i1 and out. If it is, we use in2 for Triangle 2. Otherwise, we use in1.
-            */
-
-            // Triangle 1
-            int base1 = *out_num_vertices;
-            (*out_vertices)[base1] = in1;
-            (*out_vertices)[base1 + 1] = in2;
-            (*out_vertices)[base1 + 2] = i1;
-
-            (*out_indices)[*out_num_indices + 0] = base1;
-            (*out_indices)[*out_num_indices + 1] = base1 + 1;
-            (*out_indices)[*out_num_indices + 2] = base1 + 2;
-
-            *out_num_vertices += 3;
-            *out_num_indices += 3;
-
-            // Triangle 2
-            int base2 = *out_num_vertices;
-            int in1_collinear = vec3_collinear(in1, i1, out, 0.001f);
-            (*out_vertices)[base2] = i1;
-            (*out_vertices)[base2 + 1] = i2;
-            (*out_vertices)[base2 + 2] = (in1_collinear) ? in2 : in1;
-
-            (*out_indices)[*out_num_indices + 0] = base2;
-            (*out_indices)[*out_num_indices + 1] = base2 + 1;
-            (*out_indices)[*out_num_indices + 2] = base2 + 2;
-
-            *out_num_vertices += 3;
-            *out_num_indices += 3;
-        }
-        else
-        {
-            // All inside
-            int base = *out_num_vertices;
-            (*out_vertices)[base] = v1;
-            (*out_vertices)[base + 1] = v2;
-            (*out_vertices)[base + 2] = v3;
-
-            (*out_indices)[*out_num_indices + 0] = base;
-            (*out_indices)[*out_num_indices + 1] = base + 1;
-            (*out_indices)[*out_num_indices + 2] = base + 2;
-
-            *out_num_vertices += 3;
-            *out_num_indices += 3;
+            if (!*out_indices) { fprintf(stderr, "Realloc indices failed!\n"); exit(1); }
         }
     }
 
-    // Optional: shrink to actual size
     *out_vertices = realloc(*out_vertices, *out_num_vertices * sizeof(vec4f));
     *out_indices = realloc(*out_indices, *out_num_indices * sizeof(int));
 }
@@ -269,5 +139,76 @@ void culling_find_line_intersection(vec4f v1, vec4f v2, vec4f* intersection)
         intersection->z = 1.0f;
         intersection->x = v1.x + (v2.x - v1.x) * (1.0f - v1.z) / (v2.z - v1.z);
         intersection->y = v1.y + (v2.y - v1.y) * (1.0f - v1.z) / (v2.z - v1.z);
+    }
+}
+
+
+int inside(vec4f v, int axis, float sign) {
+    float c = (axis == 0 ? v.x : axis == 1 ? v.y : v.z) * sign;
+    return c <= v.w;
+}
+
+vec4f intersect(vec4f a, vec4f b, int axis, float sign) {
+    float a_c = (axis == 0 ? a.x : axis == 1 ? a.y : a.z) * sign;
+    float b_c = (axis == 0 ? b.x : axis == 1 ? b.y : b.z) * sign;
+
+    float t = (a.w - a_c) / ((a.w - a_c) - (b.w - b_c));
+    vec4f r;
+    r.x = a.x + t * (b.x - a.x);
+    r.y = a.y + t * (b.y - a.y);
+    r.z = a.z + t * (b.z - a.z);
+    r.w = a.w + t * (b.w - a.w);
+    return r;
+}
+
+void clip_polygon_against_plane(polygon4f* in, polygon4f* out, int axis, float sign) {
+    out->count = 0;
+    for (int i = 0; i < in->count; i++) {
+        vec4f curr = in->verts[i];
+        vec4f prev = in->verts[(i - 1 + in->count) % in->count];
+
+        int curr_in = inside(curr, axis, sign);
+        int prev_in = inside(prev, axis, sign);
+
+        if (curr_in && prev_in)
+            out->verts[out->count++] = curr;
+        else if (!prev_in && curr_in) {
+            out->verts[out->count++] = intersect(prev, curr, axis, sign);
+            out->verts[out->count++] = curr;
+        } else if (prev_in && !curr_in) {
+            out->verts[out->count++] = intersect(prev, curr, axis, sign);
+        }
+    }
+}
+
+void clip_triangle(vec4f v0, vec4f v1, vec4f v2, vec4f* out_verts, int* out_vert_count) {
+    polygon4f bufferA = { .verts = { v0, v1, v2 }, .count = 3 };
+    polygon4f bufferB;
+
+    polygon4f* in = &bufferA;
+    polygon4f* out = &bufferB;
+
+    for (int axis = 0; axis < 3; axis++) {
+        clip_polygon_against_plane(in, out, axis, +1.0f); // axis <= w
+        if (out->count == 0) { *out_vert_count = 0; return; }
+        polygon4f* tmp = in; in = out; out = tmp;
+
+        clip_polygon_against_plane(in, out, axis, -1.0f); // -axis <= w
+        if (out->count == 0) { *out_vert_count = 0; return; }
+        tmp = in; in = out; out = tmp;
+    }
+
+    *out_vert_count = in->count;
+    for (int i = 0; i < in->count; i++) {
+        out_verts[i] = in->verts[i];
+    }
+}
+
+void triangulate_polygon(vec4f* verts, int count, int* out_indices, int* out_index_count, int base_index) {
+    *out_index_count = 0;
+    for (int i = 1; i < count - 1; i++) {
+        out_indices[(*out_index_count)++] = base_index;
+        out_indices[(*out_index_count)++] = base_index + i;
+        out_indices[(*out_index_count)++] = base_index + i + 1;
     }
 }

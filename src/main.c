@@ -31,8 +31,8 @@ int main(int argc, char *argv[])
 
     key_states = malloc(SDL_NUM_SCANCODES * sizeof(int));
 
-    int width = 1920;
-    int height = 1080;
+    int width = 800;
+    int height = 600;
 
     drawer_init(width, height);
 
@@ -163,21 +163,8 @@ void render_model(uint32_t* image, vec3f* vertices, int num_vertices, int* indic
     vec4f* clip_vertices = malloc(num_vertices * sizeof(vec4f));
     clip_from_camera(camera_vertices, num_vertices, fov, aspect, znear, zfar, clip_vertices);
 
-    
-
-    // 4. transform into NDC
-    // this is simple enough that we can do it in place
-    for (int i = 0; i < num_vertices; i++)
-    {
-        clip_vertices[i].x /= clip_vertices[i].w;
-        clip_vertices[i].y /= clip_vertices[i].w;
-        clip_vertices[i].z /= clip_vertices[i].w;
-    }
-
-    
-
     // culling!!
-    // 4.5. cull triangles that are outside the view frustum
+    // 3.5. cull triangles that are outside the view frustum
     vec4f* culled_vertices = NULL;
     int* culled_indices = NULL;
     int tmp_num_vertices = 0;
@@ -187,21 +174,34 @@ void render_model(uint32_t* image, vec3f* vertices, int num_vertices, int* indic
                             &culled_indices, &tmp_num_indices);
     num_vertices = tmp_num_vertices;
     num_indices = tmp_num_indices;
-    
+
+    // 4. transform into NDC
+    // this is simple enough that we can do it in place
+    for (int i = 0; i < num_vertices; i++)
+    {
+        culled_vertices[i].x /= culled_vertices[i].w;
+        culled_vertices[i].y /= culled_vertices[i].w;
+        culled_vertices[i].z /= culled_vertices[i].w;
+    }
+
+    // free the original clip_vertices
+    free(clip_vertices);
 
     // 5. transform into screen space
+ 
     vec4f* screen_vertices = malloc(num_vertices * sizeof(vec4f));
     screenspace_from_ndc(culled_vertices, num_vertices, znear, zfar, screen_vertices);
    
 
     // finally, 6. assemble and draw triangles
+ 
     screenspace_draw_model(screen_vertices, num_indices, culled_indices, image);
+    
 
     // free everything
     free(world_vertices);
     free(vertices_w);
     free(camera_vertices);
-    free(clip_vertices);
     // ATTN! We will free these as soon as we're done with them later... doing this for simplicity for now
 
 }

@@ -66,5 +66,7 @@ void mat4_inverse(const mat4 m, mat4 out);
 void mat4_print(const mat4 m);
 
 void vec3_add_scaled(vec3f* a, vec3f* b, float scale);
+int vec3_collinear(vec3f a, vec3f b, vec3f c, float epsilon);
+int vec4_collinear(vec4f a, vec4f b, vec4f c, float epsilon);
 
 #endif

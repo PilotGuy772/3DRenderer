@@ -18,14 +18,14 @@ void screenspace_draw_line(uint32_t* image, screen_point p1, screen_point p2)
     */
 
     // give one pixel of buffer with the edge of the screen
-    if (p1.x <= 0) p1.x = 1;
-    if (p1.x >= window_width - 1) p1.x = window_width - 2;
-    if (p1.y <= 0) p1.y = 1;
-    if (p1.y >= window_height - 1) p1.y = window_height - 2;
-    if (p2.x <= 0) p2.x = 1;
-    if (p2.x >= window_width - 1) p2.x = window_width - 2;
-    if (p2.y <= 0) p2.y = 1;
-    if (p2.y >= window_height - 1) p2.y = window_height - 2;
+    // if (p1.x <= 0) p1.x = 1;
+    // if (p1.x >= window_width - 1) p1.x = window_width - 2;
+    // if (p1.y <= 0) p1.y = 1;
+    // if (p1.y >= window_height - 1) p1.y = window_height - 2;
+    // if (p2.x <= 0) p2.x = 1;
+    // if (p2.x >= window_width - 1) p2.x = window_width - 2;
+    // if (p2.y <= 0) p2.y = 1;
+    // if (p2.y >= window_height - 1) p2.y = window_height - 2;
 
     //p1 MUST be further to the left! If not, call this function again with parameters swapped, then return.
     if (p1.x == p2.x)
