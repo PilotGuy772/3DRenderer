@@ -140,6 +140,24 @@ void culling_cull_triangle(vec4f* vertices, int num_vertices, int* indices, int 
                 culling_find_line_intersection(v3, v2, &i2);
             }
 
+            /*
+                We have to make one triangle with the two inside vertices and an intersection point,
+                and one triangle with the two intersection points and one inside vertex.
+                UNFORTUNATELY: what I didn't realize before is that it DOES matter which inside vertex we use!
+                We have to use the one that's OPPOSITE the intersection point we used for the triangle
+                that uses one intersection point and the two inside vertices.
+
+                How do we determine which inside vertex to use?
+                Well, if we have two inside vertices in1 and in2, one outside vertex out, and two intersection points i1 and i2,
+                we can tell whether an intersection point shares a face with an inside vertex by checking if the
+                intersection point is collinear with the inside vertex and the outside vertex.
+
+                So: Triangle 1 will ALWAYS be made with in1, in2, and i1.
+
+                Triangle 2 will be made with i1 and i2
+                We determine whether in1 is collinear with i1 and out. If it is, we use in2 for Triangle 2. Otherwise, we use in1.
+            */
+
             // Triangle 1
             int base1 = *out_num_vertices;
             (*out_vertices)[base1] = in1;
@@ -155,9 +173,10 @@ void culling_cull_triangle(vec4f* vertices, int num_vertices, int* indices, int 
 
             // Triangle 2
             int base2 = *out_num_vertices;
+            int in1_collinear = vec3_collinear(in1, i1, out, 0.001f);
             (*out_vertices)[base2] = i1;
             (*out_vertices)[base2 + 1] = i2;
-            (*out_vertices)[base2 + 2] = in2;
+            (*out_vertices)[base2 + 2] = (in1_collinear) ? in2 : in1;
 
             (*out_indices)[*out_num_indices + 0] = base2;
             (*out_indices)[*out_num_indices + 1] = base2 + 1;

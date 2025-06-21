@@ -31,8 +31,8 @@ int main(int argc, char *argv[])
 
     key_states = malloc(SDL_NUM_SCANCODES * sizeof(int));
 
-    int width = 640;
-    int height = 480;
+    int width = 1920;
+    int height = 1080;
 
     drawer_init(width, height);
 
