@@ -1,6 +1,8 @@
 // code for handling objects in model space
 #include "model.h"
 
+
+
 void model_add_w(vec3f* in, int num_vertices, vec4f* out)
 {
     

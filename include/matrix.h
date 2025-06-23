@@ -34,6 +34,14 @@ typedef struct vec3f
     float z;
 } vec3f;
 
+typedef struct vec4
+{
+    int x;
+    int y;
+    int z;
+    int w;
+} vec4;
+
 typedef struct vec4f
 {
     float x;
@@ -55,7 +63,7 @@ void mat4_rotate_y(mat4 m, float angle);
 void mat4_rotate_z(mat4 m, float angle);
 void mat4_scale(mat4 m, float sx, float sy, float sz);
 void mat4_transform_vec3(const mat4 m, const vec3* v, vec3* out);
-void mat4_transform_vec3f(const mat4 m, const vec3f* v, vec3f* out);
+void mat4_transform_vec3f(const mat4 m, vec3f* v, vec3f* out);
 void mat4_transform_vec2(const mat4 m, const vec2* v, vec2* out);
 void mat4_transform_vec2f(const mat4 m, const vec2f* v, vec2f* out);
 
@@ -68,5 +76,12 @@ void mat4_print(const mat4 m);
 void vec3_add_scaled(vec3f* a, vec3f* b, float scale);
 int vec3_collinear(vec3f a, vec3f b, vec3f c, float epsilon);
 int vec4_collinear(vec4f a, vec4f b, vec4f c, float epsilon);
+// Subtract vector b from vector a (a - b)x
+vec3f vec3_sub(vec3f a, vec3f b);
+// Compute the cross product of vectors a and b (a × b)
+vec3f vec3_cross(vec3f a, vec3f b);
+// Normalize a vector (make its length equal to 1)
+vec3f vec3_normalize(vec3f v);
+float vec2_distance(vec2 a, vec2 b);
 
 #endif

@@ -1,6 +1,6 @@
 #include "projection.h"
 
-void clip_from_camera(vec4f* vertices, int num_vertices, float fov, float aspect, float znear, float zfar, vec4f* out_vertices)
+void clip_from_camera(vertex* vertices, int num_vertices, float fov, float aspect, float znear, float zfar, vertex* out_vertices)
 {
     // Calculate the projection matrix
     // mat4_identity(projection_matrix);
@@ -25,6 +25,7 @@ void clip_from_camera(vec4f* vertices, int num_vertices, float fov, float aspect
 
     for (int i = 0; i < num_vertices; i++)
     {
-        mat4_transform_vec4f(projection_matrix, vertices[i], &out_vertices[i]);
+        mat4_transform_vec4f(projection_matrix, vertices[i].position, &out_vertices[i].position);
+        mat4_transform_vec3f(projection_matrix, &vertices[i].normal, &out_vertices[i].normal);
     }
 }
