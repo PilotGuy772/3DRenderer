@@ -12,8 +12,6 @@
         "stdlib.h": "c",
         "stdio.h": "c",
         "main.h": "c",
-        "matrix.h": "c",
-        "model.h": "c",
-        "fragment.h": "c"
+        "matrix.h": "c"
     }
 }

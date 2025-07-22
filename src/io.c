@@ -4,7 +4,7 @@
 
 int* key_states; // 0 = not pressed, 1 = pressed
 
-void read_model(char* filepath, vertex** vertices, face** faces, int* num_vertices, int* num_faces)
+void read_model(char* filepath, vec3f** vertices, int** indices, int* num_vertices, int* num_indices)
 {
     FILE* file = fopen(filepath, "r");
     if (!file) {
@@ -12,11 +12,10 @@ void read_model(char* filepath, vertex** vertices, face** faces, int* num_vertic
         return;
     }
 
-    *vertices = malloc(MAX_VERTICES * sizeof(vertex));
-    *faces = malloc(MAX_INDICES * sizeof(face));
-    vec3f* tmp_normals = malloc(MAX_INDICES * sizeof(vec3f));
+    *vertices = malloc(MAX_VERTICES * sizeof(vec3f));
+    *indices = malloc(MAX_INDICES * sizeof(int));
 
-    if (!*vertices || !*faces) {
+    if (!*vertices || !*indices) {
         perror("Failed to allocate memory");
         fclose(file);
         return;
@@ -25,74 +24,34 @@ void read_model(char* filepath, vertex** vertices, face** faces, int* num_vertic
     char line[256];
     int vertex_count = 0;
     int face_count = 0;
-    int normal_count = 0;
-    while (fgets(line, sizeof(line), file)) 
-    {
-        if (strncmp(line, "v ", 2) == 0) 
-        {
+    while (fgets(line, sizeof(line), file)) {
+        if (strncmp(line, "v ", 2) == 0) {
             // Vertex line
-            float x, y, z;
-            sscanf(line + 2, "%f %f %f", x, y, z);
-            vec3f pos = {x, y, z};
-            (*vertices)[vertex_count].position = (vec4f){pos.x, pos.y, pos.z, 1.0f};
-            (*vertices)[vertex_count].world_pos = pos;
-            (*vertices)[vertex_count].color = 0xFFFFFFFF;
+            sscanf(line + 2, "%f %f %f", &(*vertices)[vertex_count].x, &(*vertices)[vertex_count].y, &(*vertices)[vertex_count].z);
             vertex_count++;
-        }
-        else if(strncmp(line, "vn ", 3) == 0)
-        {
-            float x, y, z;
-            sscanf(line + 3, "%f %f %f", x, y, z);
-            vec3f norm = {x, y, z};
-            tmp_normals[normal_count] = norm;
-            normal_count++;
-        }
-        else if (strncmp(line, "f ", 2) == 0) 
-        {
-            // first, map vertices & normals
+        } else if (strncmp(line, "f ", 2) == 0) {
             int v[4];
-            int n[4];
             int count = sscanf(line + 2, "%d/%*d/%*d %d/%*d/%*d %d/%*d/%*d %d/%*d/%*d",
-                                &v[0], &v[1], &v[2], &v[3]);
-            sscanf(line + 2, "%*d/%*d/%d %*d/%*d/%d %*d/%*d/%d %*d/%*d/%d",
-                                &n[0], &n[1], &n[2], &n[3]);
+                            &v[0], &v[1], &v[2], &v[3]);
 
-            // map normals to vertices
-            for (int i = 0; i < count; i++)
-            {
-                (*vertices)[i].normal = (vec3f){
-                    tmp_normals[n[i]].x, 
-                    tmp_normals[n[i]].y, 
-                    tmp_normals[n[i]].z
-                };
+            if (count >= 3) {
+                (*indices)[face_count++] = v[0] - 1;
+                (*indices)[face_count++] = v[1] - 1;
+                (*indices)[face_count++] = v[2] - 1;
             }
-
-            if (count >= 3)
-            {
-                (*faces)[face_count] = (face){
-                    {v[0] - 1, v[1] - 1, v[2] - 1}, // indices
-                    0xFFFFFFFF, // placeholder color
-                    (vec3f){tmp_normals[n[0]].x, tmp_normals[n[0]].y, tmp_normals[n[0]].z}, // use the first normal in the list for now
-                    0 // placeholder material index
-                };
-            }
-            if (count == 4)
-            {
-                (*faces)[face_count] = (face){
-                    {v[0] - 1, v[2] - 1, v[3] - 1}, // indices
-                    0xFFFFFFFF, // placeholder color
-                    (vec3f){tmp_normals[n[0]].x, tmp_normals[n[0]].y, tmp_normals[n[0]].z}, // use the first normal in the list for now
-                    0 // placeholder material index
-                };
+            if (count == 4) {
+                (*indices)[face_count++] = v[0] - 1;
+                (*indices)[face_count++] = v[2] - 1;
+                (*indices)[face_count++] = v[3] - 1;
             }
         }
     }
 
     *num_vertices = vertex_count;
-    *num_faces = face_count; 
+    *num_indices = face_count; // Each face consists of 3 indices
 
     *vertices = realloc(*vertices, vertex_count * sizeof(vec3f));
-    *faces = realloc(*faces, face_count * sizeof(face));
+    *indices = realloc(*indices, face_count * sizeof(int));
 
     fclose(file);
 }

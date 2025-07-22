@@ -1,167 +1,214 @@
+// this file will handle culling vertices that are outside the view frustum. Once vertices are in clip space, we can easily determine if they are outside the view frustum by checking their coordinates.
+/*
+    Here's the basic idea:
+    1. We operate in terms of triangles, not vertices. Look at each triangle and determine if it is fully outside the view frustum.
+    2. If a triangle is fully outside the view frustum, we can discard it. This is the simple case.
+    3. If a triangle has ONE vertex inside the view frustum, we can keep it and cull the other two vertices.
+        a. Remove the triangle from the list of triangles.
+        b. Add a new triangle with the one vertex inside the view and two vertices at the intersection of the triangle edges and the view frustum planes.
+    4. If the triangle has TWO vertices inside the view frustum, we can keep it and cull the third vertex.
+        a. Remove the triangle from the list of triangles.
+        b. Determine the two points where the edges of the triangle intersect the view frustum planes.
+        c. Add one triangle with both original vertices and one intersection point.
+        d. Add one triangle with both intersection points and one original vertex.
+
+    Translating this into C, we have some memory stuff to deal with. We copy everything to new arrays as we go; as we process each triangle, valid vertices go into a new
+    vertex array, and valid indices go into a new index array.    
+*/
+
+#include "matrix.h"
 #include "culling.h"
 
 
-/* ------------------------------------------------------------------ */
-/*  Helper – interpolate full vertex along edge  a ---- t ---- b       */
-static vertex lerp_vertex(const vertex *a, const vertex *b, float t)
+void culling_cull_triangle(vec4f* vertices, int num_vertices, int* indices, int num_indices,
+                           vec4f** out_vertices, int* out_num_vertices,
+                           int** out_indices, int* out_num_indices)
 {
-    vertex r = {0};
-    r.position.x = a->position.x + t * (b->position.x - a->position.x);
-    r.position.y = a->position.y + t * (b->position.y - a->position.y);
-    r.position.z = a->position.z + t * (b->position.z - a->position.z);
-    r.position.w = a->position.w + t * (b->position.w - a->position.w);
+    int vertex_alloc = num_vertices * 3;
+    int index_alloc = num_indices * 3;
 
-    r.normal.x   = a->normal.x   + t * (b->normal.x   - a->normal.x);
-    r.normal.y   = a->normal.y   + t * (b->normal.y   - a->normal.y);
-    r.normal.z   = a->normal.z   + t * (b->normal.z   - a->normal.z);
+    *out_vertices = malloc(vertex_alloc * sizeof(vec4f));
+    *out_indices = malloc(index_alloc * sizeof(int));
+    *out_num_vertices = 0;
+    *out_num_indices = 0;
 
-    r.world_pos.x= a->world_pos.x+ t*(b->world_pos.x - a->world_pos.x);
-    r.world_pos.y= a->world_pos.y+ t*(b->world_pos.y - a->world_pos.y);
-    r.world_pos.z= a->world_pos.z+ t*(b->world_pos.z - a->world_pos.z);
+    if (!*out_vertices || !*out_indices) {
+        fprintf(stderr, "Memory allocation failed!\n");
+        exit(1);
+    }
 
-    /* simple colour blend (8-bit channels) */
-    uint8_t ar = (a->color >> 24) & 0xFF, ag = (a->color >> 16) & 0xFF,
-            ab = (a->color >>  8) & 0xFF, aa =  a->color        & 0xFF;
-    uint8_t br = (b->color >> 24) & 0xFF, bg = (b->color >> 16) & 0xFF,
-            bb = (b->color >>  8) & 0xFF, ba =  b->color        & 0xFF;
-    uint32_t cr = (uint32_t)(ar + t * (br - ar));
-    uint32_t cg = (uint32_t)(ag + t * (bg - ag));
-    uint32_t cb = (uint32_t)(ab + t * (bb - ab));
-    uint32_t ca = (uint32_t)(aa + t * (ba - aa));
-    r.color = (cr << 24) | (cg << 16) | (cb << 8) | ca;
+    for (int i = 0; i < num_indices; i += 3)
+    {
+        vec4f v0 = vertices[indices[i + 0]];
+        vec4f v1 = vertices[indices[i + 1]];
+        vec4f v2 = vertices[indices[i + 2]];
+
+        vec4f clipped[MAX_VERTS_PER_TRI];
+        int clipped_count = 0;
+        clip_triangle(v0, v1, v2, clipped, &clipped_count);
+
+        if (clipped_count == 0)
+            continue;
+
+        int base = *out_num_vertices;
+        for (int j = 0; j < clipped_count; j++) {
+            if (*out_num_vertices >= vertex_alloc) {
+                vertex_alloc *= 2;
+                *out_vertices = realloc(*out_vertices, vertex_alloc * sizeof(vec4f));
+                if (!*out_vertices) { fprintf(stderr, "Realloc vertices failed!\n"); exit(1); }
+            }
+            (*out_vertices)[*out_num_vertices] = clipped[j];
+            (*out_num_vertices)++;
+        }
+
+        int index_start = *out_num_indices;
+        int index_count = 0;
+        triangulate_polygon(clipped, clipped_count, *out_indices + index_start, &index_count, base);
+        *out_num_indices += index_count;
+
+        if (*out_num_indices >= index_alloc) {
+            index_alloc *= 2;
+            *out_indices = realloc(*out_indices, index_alloc * sizeof(int));
+            if (!*out_indices) { fprintf(stderr, "Realloc indices failed!\n"); exit(1); }
+        }
+    }
+
+    *out_vertices = realloc(*out_vertices, *out_num_vertices * sizeof(vec4f));
+    *out_indices = realloc(*out_indices, *out_num_indices * sizeof(int));
+}
+
+
+
+int culling_check_point_in_range(vec4f point)
+{
+    // check if the point is within the view frustum
+    return (point.x >= -1.0f && point.x <= 1.0f &&
+            point.y >= -1.0f && point.y <= 1.0f &&
+            point.z >= -1.0f && point.z <= 1.0f);
+}
+
+void culling_find_line_intersection(vec4f v1, vec4f v2, vec4f* intersection)
+{
+    // This function will find the intersection of the line segment defined by v1 and v2 with the view frustum planes.
+    // For simplicity, we will assume the view frustum is defined by the planes x = -1, x = 1, y = -1, y = 1, z = -1, z = 1.
+    
+
+    // there are three key steps:
+    // 1. Determine which plane the line segment intersects-- which plane is sandwiched between the two points?
+    // 2. Calculate the intersection point using linear interpolation.
+    // 3. Return the intersection point.
+    
+    if (v1.x < -1.0f && v2.x > -1.0f)
+    {
+        // intersects the left plane
+        intersection->x = -1.0f;
+        intersection->y = v1.y + (v2.y - v1.y) * (-1.0f - v1.x) / (v2.x - v1.x);
+        intersection->z = v1.z + (v2.z - v1.z) * (-1.0f - v1.x) / (v2.x - v1.x);
+    }
+    else if (v1.x > 1.0f && v2.x < 1.0f)
+    {
+        // intersects the right plane
+        intersection->x = 1.0f;
+        intersection->y = v1.y + (v2.y - v1.y) * (1.0f - v1.x) / (v2.x - v1.x);
+        intersection->z = v1.z + (v2.z - v1.z) * (1.0f - v1.x) / (v2.x - v1.x);
+    }
+    else if (v1.y < -1.0f && v2.y > -1.0f)
+    {
+        // intersects the bottom plane
+        intersection->y = -1.0f;
+        intersection->x = v1.x + (v2.x - v1.x) * (-1.0f - v1.y) / (v2.y - v1.y);
+        intersection->z = v1.z + (v2.z - v1.z) * (-1.0f - v1.y) / (v2.y - v1.y);
+    }
+    else if (v1.y > 1.0f && v2.y < 1.0f)
+    {
+        // intersects the top plane
+        intersection->y = 1.0f;
+        intersection->x = v1.x + (v2.x - v1.x) * (1.0f - v1.y) / (v2.y - v1.y);
+        intersection->z = v1.z + (v2.z - v1.z) * (1.0f - v1.y) / (v2.y - v1.y);
+    }
+    else if (v1.z < -1.0f && v2.z > -1.0f)
+    {
+        // intersects the near plane
+        intersection->z = -1.0f;
+        intersection->x = v1.x + (v2.x - v1.x) * (-1.0f - v1.z) / (v2.z - v1.z);
+        intersection->y = v1.y + (v2.y - v1.y) * (-1.0f - v1.z) / (v2.z - v1.z);
+    }
+    else if (v1.z > 1.0f && v2.z < 1.0f)
+    {
+        // intersects the far plane
+        intersection->z = 1.0f;
+        intersection->x = v1.x + (v2.x - v1.x) * (1.0f - v1.z) / (v2.z - v1.z);
+        intersection->y = v1.y + (v2.y - v1.y) * (1.0f - v1.z) / (v2.z - v1.z);
+    }
+}
+
+
+int inside(vec4f v, int axis, float sign) {
+    float c = (axis == 0 ? v.x : axis == 1 ? v.y : v.z) * sign;
+    return c <= v.w;
+}
+
+vec4f intersect(vec4f a, vec4f b, int axis, float sign) {
+    float a_c = (axis == 0 ? a.x : axis == 1 ? a.y : a.z) * sign;
+    float b_c = (axis == 0 ? b.x : axis == 1 ? b.y : b.z) * sign;
+
+    float t = (a.w - a_c) / ((a.w - a_c) - (b.w - b_c));
+    vec4f r;
+    r.x = a.x + t * (b.x - a.x);
+    r.y = a.y + t * (b.y - a.y);
+    r.z = a.z + t * (b.z - a.z);
+    r.w = a.w + t * (b.w - a.w);
     return r;
 }
 
-/* ------------------------------------------------------------------ */
-/*  Inside-test and edge intersection (homogeneous clipping)          */
-static int inside(const vertex *v, int axis, float sign)
-{
-    float c = (axis==0? v->position.x : axis==1? v->position.y : v->position.z) * sign;
-    return c <= v->position.w;
-}
-
-static vertex intersect(const vertex *a, const vertex *b, int axis, float sign)
-{
-    float a_c = (axis==0? a->position.x : axis==1? a->position.y : a->position.z) * sign;
-    float b_c = (axis==0? b->position.x : axis==1? b->position.y : b->position.z) * sign;
-
-    float t = (a->position.w - a_c) / ((a->position.w - a_c) - (b->position.w - b_c));
-    return lerp_vertex(a, b, t);
-}
-
-/* ------------------------------------------------------------------ */
-typedef struct { vertex v[MAX_VERTS_PER_TRI]; int count; } poly_t;
-
-static void clip_poly_plane(const poly_t *in, poly_t *out, int axis, float sign)
-{
+void clip_polygon_against_plane(polygon4f* in, polygon4f* out, int axis, float sign) {
     out->count = 0;
-    for (int i=0; i<in->count; ++i) {
-        const vertex *curr = &in->v[i];
-        const vertex *prev = &in->v[(i-1+in->count)%in->count];
+    for (int i = 0; i < in->count; i++) {
+        vec4f curr = in->verts[i];
+        vec4f prev = in->verts[(i - 1 + in->count) % in->count];
 
         int curr_in = inside(curr, axis, sign);
         int prev_in = inside(prev, axis, sign);
 
-        if (curr_in && prev_in) { out->v[out->count++] = *curr; }
+        if (curr_in && prev_in)
+            out->verts[out->count++] = curr;
         else if (!prev_in && curr_in) {
-            out->v[out->count++] = intersect(prev, curr, axis, sign);
-            out->v[out->count++] = *curr;
-        }
-        else if (prev_in && !curr_in) {
-            out->v[out->count++] = intersect(prev, curr, axis, sign);
+            out->verts[out->count++] = intersect(prev, curr, axis, sign);
+            out->verts[out->count++] = curr;
+        } else if (prev_in && !curr_in) {
+            out->verts[out->count++] = intersect(prev, curr, axis, sign);
         }
     }
 }
 
-/* ------------------------------------------------------------------ */
-static void clip_triangle_full(const vertex *t0, const vertex *t1, const vertex *t2,
-                               poly_t *poly_out)
-{
-    poly_t bufA = { .v = { *t0, *t1, *t2 }, .count = 3 };
-    poly_t bufB = { .count = 0 };
-    poly_t *in = &bufA, *out = &bufB, *tmp;
+void clip_triangle(vec4f v0, vec4f v1, vec4f v2, vec4f* out_verts, int* out_vert_count) {
+    polygon4f bufferA = { .verts = { v0, v1, v2 }, .count = 3 };
+    polygon4f bufferB;
 
-    for (int axis=0; axis<3; ++axis) {
-        clip_poly_plane(in, out, axis, +1.f);
-        if (out->count==0){ poly_out->count = 0; return; }
-        tmp=in; in=out; out=tmp;
+    polygon4f* in = &bufferA;
+    polygon4f* out = &bufferB;
 
-        clip_poly_plane(in, out, axis, -1.f);
-        if (out->count==0){ poly_out->count = 0; return; }
-        tmp=in; in=out; out=tmp;
+    for (int axis = 0; axis < 3; axis++) {
+        clip_polygon_against_plane(in, out, axis, +1.0f); // axis <= w
+        if (out->count == 0) { *out_vert_count = 0; return; }
+        polygon4f* tmp = in; in = out; out = tmp;
+
+        clip_polygon_against_plane(in, out, axis, -1.0f); // -axis <= w
+        if (out->count == 0) { *out_vert_count = 0; return; }
+        tmp = in; in = out; out = tmp;
     }
-    *poly_out = *in;          /* copy result */
-}
 
-/* ------------------------------------------------------------------ */
-/*  Fan-triangulate the polygon into faces                            */
-static void emit_tris_from_poly(const poly_t *poly, uint32_t face_color,
-                                face *out_faces, int *face_count,
-                                int base_index)
-{
-    for (int i=1; i<poly->count-1; ++i) {
-        face f;
-        f.indices[0] = base_index;
-        f.indices[1] = base_index + i;
-        f.indices[2] = base_index + i + 1;
-        f.color      = face_color;
-        /* flat normal (optional): */
-        vec3f a = (vec3f){poly->v[i].position.x, poly->v[i].position.y, poly->v[i].position.z};
-        vec3f b = (vec3f){poly->v[0].position.x, poly->v[0].position.y, poly->v[0].position.z};
-        vec3f c = (vec3f){poly->v[i+1].position.x, poly->v[i+1].position.y, poly->v[i+1].position.z};
-        f.normal = vec3_normalize(vec3_cross(vec3_sub(b, a), vec3_sub(c, a)));
-        f.material = 0;
-        out_faces[(*face_count)++] = f;
+    *out_vert_count = in->count;
+    for (int i = 0; i < in->count; i++) {
+        out_verts[i] = in->verts[i];
     }
 }
 
-/* ================================================================== */
-/*  PUBLIC ENTRY                                                      */
-void culling_cull_triangle(vertex *vertices, int num_vertices,
-                           face *faces,     int num_faces,
-                           vertex **out_vertices, int *out_num_vertices,
-                           face   **out_faces,    int *out_num_faces)
-{
-    /* start with generous allocations */
-    int v_alloc = num_vertices * 4;
-    int f_alloc = num_faces    * 4;
-    *out_vertices    = (vertex*)malloc(v_alloc * sizeof(vertex));
-    *out_faces       = (face  *)malloc(f_alloc * sizeof(face));
-    *out_num_vertices= 0;
-    *out_num_faces   = 0;
-
-    if (!*out_vertices || !*out_faces) { fprintf(stderr,"alloc fail\n"); exit(1); }
-
-    for (int fi=0; fi<num_faces; ++fi)
-    {
-        const face *src = &faces[fi];
-        const vertex *v0 = &vertices[src->indices[0]];
-        const vertex *v1 = &vertices[src->indices[1]];
-        const vertex *v2 = &vertices[src->indices[2]];
-
-        poly_t poly;  clip_triangle_full(v0,v1,v2,&poly);
-        if (poly.count==0) continue;
-
-        /* ensure space for new vertices */
-        if (*out_num_vertices + poly.count > v_alloc) {
-            v_alloc *= 2;
-            *out_vertices = (vertex*)realloc(*out_vertices, v_alloc*sizeof(vertex));
-        }
-        /* copy vertices */
-        int base = *out_num_vertices;
-        memcpy(&(*out_vertices)[base], poly.v, poly.count*sizeof(vertex));
-        *out_num_vertices += poly.count;
-
-        /* ensure space for faces (fan produces n-2 triangles) */
-        int add_faces = poly.count - 2;
-        if (*out_num_faces + add_faces > f_alloc) {
-            f_alloc = f_alloc*2 + add_faces;
-            *out_faces = (face*)realloc(*out_faces, f_alloc*sizeof(face));
-        }
-        emit_tris_from_poly(&poly, src->color, *out_faces, out_num_faces, base);
+void triangulate_polygon(vec4f* verts, int count, int* out_indices, int* out_index_count, int base_index) {
+    *out_index_count = 0;
+    for (int i = 1; i < count - 1; i++) {
+        out_indices[(*out_index_count)++] = base_index;
+        out_indices[(*out_index_count)++] = base_index + i;
+        out_indices[(*out_index_count)++] = base_index + i + 1;
     }
-
-    /* trim to actual size (optional) */
-    *out_vertices = (vertex*)realloc(*out_vertices, (*out_num_vertices)*sizeof(vertex));
-    *out_faces    = (face  *)realloc(*out_faces,    (*out_num_faces)   *sizeof(face));
 }

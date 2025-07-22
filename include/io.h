@@ -3,7 +3,6 @@
 
 #include "matrix.h"
 #include "quat.h"
-#include "model.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -14,7 +13,7 @@
 #define MOVE_SPEED 0.1f
 #define ROTATE_SPEED 0.05f // <- in radians
 
-void read_model(char* filepath, vertex** vertices, face** faces, int* num_vertices, int* num_indices);
+void read_model(char* filepath, vec3f** vertices, int** indices, int* num_vertices, int* num_indices);
 
 extern int* key_states; // 0 = not pressed, 1 = pressed
 

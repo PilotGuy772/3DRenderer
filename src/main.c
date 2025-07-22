@@ -45,22 +45,15 @@ int main(int argc, char *argv[])
     }
 
     // read a model from file
-    vertex* vertices;
-    face* faces;
-    int num_vertices, num_faces;
-    read_model("cube.obj", &vertices, &faces, &num_vertices, &num_faces);
-
-    // array for face colors! For now, just randomly generate colors for each face
-    // uint32_t* face_colors = malloc((int)ceil(num_indices / 3.0) * sizeof(uint32_t));
-    // for (int i = 0; i < (int)ceil(num_indices / 3.0); i++)
-    // {
-    //     face_colors[i] = (uint32_t)((rand() % 0x00FFFFFF) + 0xFF000000); // random color with full opacity
-    // }
+    vec3f* vertices;
+    int* indices;
+    int num_vertices, num_indices;
+    read_model("3d.obj", &vertices, &indices, &num_vertices, &num_indices);
 
     printf("Read vertices:\n");
     for (int i = 0; i < 1; i++)
     {
-        printf("Vertex %d: (%f, %f, %f)\n", i, vertices[i].position.x, vertices[i].position.y, vertices[i].position.z);
+        printf("Vertex %d: (%f, %f, %f)\n", i, vertices[i].x, vertices[i].y, vertices[i].z);
     }
     // printf("Read faces:\n");
     // for (int i = 0; i < num_indices; i += 3)
@@ -80,7 +73,16 @@ int main(int argc, char *argv[])
     mat4 change;
     mat4_rotate_y(change, 0.01f);
     
+    
 
+    // define a matrix for camera position
+    // for now, back it up a bit and look at the origin
+    // mat4 camera_transform;
+    // mat4_identity(camera_transform);
+    // mat4_translate(camera_transform, 0.0f, 0.0f, 6.0f);
+
+    // mat4 camera_per_tick_transform;
+    // mat4_identity(camera_per_tick_transform);
     vec3f camera_pos = {0.0f, 0.0f, 6.0f};
     quat camera_rot = {1.0f, 0.0f, 0.0f, 0.0f}; // identity quaternion
 
@@ -111,7 +113,7 @@ int main(int argc, char *argv[])
 
         // basic render pipeline track, using the model defined above for testing
 
-        render_model(image, vertices, num_vertices, faces, num_faces, transform, camera_pos, camera_rot, width, height);
+        render_model(image, vertices, num_vertices, indices, num_indices, transform, camera_pos, camera_rot, width, height);
 
         //screenspace_plot_point(image, (screen_point){width / 2, height / 2});
         drawer_draw_buffer(image);
@@ -136,18 +138,18 @@ int main(int argc, char *argv[])
     return 0;
 }
 
-void render_model(uint32_t* image, vertex* vertices, int num_vertices, int* faces, int num_faces, mat4 transform, vec3f camera_pos, quat camera_rot, int width, int height)
+void render_model(uint32_t* image, vec3f* vertices, int num_vertices, int* indices, int num_indices, mat4 transform, vec3f camera_pos, quat camera_rot, int width, int height)
 {
     // 1. translate into world space
-    vertex* world_vertices = malloc(num_vertices * sizeof(vertex));
+    vec4f* world_vertices = malloc(num_vertices * sizeof(vec4f));
     // (add homogenous component)
-    //vec4f* vertices_w = malloc(num_vertices * sizeof(vec4f));
-    //model_add_w(vertices, num_vertices, vertices_w);
-    world_from_model(vertices, num_vertices, transform, world_vertices);
+    vec4f* vertices_w = malloc(num_vertices * sizeof(vec4f));
+    model_add_w(vertices, num_vertices, vertices_w);
+    world_from_model(vertices_w, num_vertices, transform, world_vertices);
     
 
     // 2. transform into camera space
-    vertex* camera_vertices = malloc(num_vertices * sizeof(vertex));
+    vec4f* camera_vertices = malloc(num_vertices * sizeof(vec4f));
     camera_from_world(camera_pos, camera_rot, world_vertices, num_vertices, camera_vertices);
 
     
@@ -158,40 +160,42 @@ void render_model(uint32_t* image, vertex* vertices, int num_vertices, int* face
     float zfar = 50.0f;
     float fov = M_PI / 2.0f; // 90 degrees
     float aspect = (float)width / (float)height;
-    vertex* clip_vertices = malloc(num_vertices * sizeof(vertex));
+    vec4f* clip_vertices = malloc(num_vertices * sizeof(vec4f));
     clip_from_camera(camera_vertices, num_vertices, fov, aspect, znear, zfar, clip_vertices);
 
     // culling!!
     // 3.5. cull triangles that are outside the view frustum
-    vertex* culled_vertices = NULL;
-    face* culled_faces = NULL;
+    vec4f* culled_vertices = NULL;
+    int* culled_indices = NULL;
     int tmp_num_vertices = 0;
     int tmp_num_indices = 0;
-    culling_cull_triangle(clip_vertices, num_vertices, faces, num_faces, 
+    culling_cull_triangle(clip_vertices, num_vertices, indices, num_indices, 
                             &culled_vertices, &tmp_num_vertices, 
-                            &culled_faces, &tmp_num_indices);
+                            &culled_indices, &tmp_num_indices);
     num_vertices = tmp_num_vertices;
-    faces = tmp_num_indices;
+    num_indices = tmp_num_indices;
 
     // 4. transform into NDC
     // this is simple enough that we can do it in place
     for (int i = 0; i < num_vertices; i++)
     {
-        culled_vertices[i].position.x /= culled_vertices[i].position.w;
-        culled_vertices[i].position.y /= culled_vertices[i].position.w;
-        culled_vertices[i].position.z /= culled_vertices[i].position.w;
+        culled_vertices[i].x /= culled_vertices[i].w;
+        culled_vertices[i].y /= culled_vertices[i].w;
+        culled_vertices[i].z /= culled_vertices[i].w;
     }
 
     // free the original clip_vertices
     free(clip_vertices);
 
     // 5. transform into screen space
-    vertex* screen_vertices = malloc(num_vertices * sizeof(vertex));
+ 
+    vec4f* screen_vertices = malloc(num_vertices * sizeof(vec4f));
     screenspace_from_ndc(culled_vertices, num_vertices, znear, zfar, screen_vertices);
+   
 
     // finally, 6. assemble and draw triangles
-    //screenspace_clear_depth_buffer(width, height);
-    //screenspace_draw_model(screen_vertices, num_indices, culled_indices, colors, image);
+    screenspace_clear_depth_buffer(width, height);
+    screenspace_draw_model(screen_vertices, num_indices, culled_indices, image);
     
 
     // free everything

@@ -2,15 +2,15 @@
 
 float* depth_buffer;
 
-void screenspace_draw_triangle(uint32_t* image, triangle tri, uint32_t color)
+void screenspace_draw_triangle(uint32_t* image, triangle tri)
 {
     
-    screenspace_draw_line(image, tri.a, tri.b, color);
-    screenspace_draw_line(image, tri.b, tri.c, color);
-    screenspace_draw_line(image, tri.c, tri.a, color);
+    screenspace_draw_line(image, tri.a, tri.b);
+    screenspace_draw_line(image, tri.b, tri.c);
+    screenspace_draw_line(image, tri.c, tri.a);
 }
 
-void screenspace_draw_line(uint32_t* image, vec4f p1, vec4f p2, uint32_t color)
+void screenspace_draw_line(uint32_t* image, vec4f p1, vec4f p2)
 {
     /*
         1. Extrapolate the slope of the line
@@ -40,7 +40,7 @@ void screenspace_draw_line(uint32_t* image, vec4f p1, vec4f p2, uint32_t color)
         for (int x = p1.x; x <= p2.x; x++)
         {
             int y = (int) (((float)dy / dx) * (x - p1.x) + p1.y);
-            screenspace_add_point_depth((vec4f){x, y, z, 1.0f}, image, color);
+            screenspace_add_point_depth((vec4f){x, y, z, 1.0f}, image);
 
             // add to z according to dz
             z += ((float)dz / dx) * (x - p1.x);
@@ -59,7 +59,7 @@ void screenspace_draw_line(uint32_t* image, vec4f p1, vec4f p2, uint32_t color)
         for (int y = p1.y; y <= p2.y; y++)
         {
             int x = (int) (((float)dx / dy) * (y - p1.y) + p1.x);
-            screenspace_add_point_depth((vec4f){x, y, z, 1.0f}, image, color);
+            screenspace_add_point_depth((vec4f){x, y, z, 1.0f}, image);
 
             // add to z according to dz (this time in terms of dy)
             z += ((float)dz / dy) * (y - p1.y);
@@ -96,24 +96,32 @@ void screenspace_plot_point(uint32_t* image, screen_point p)
     }
 }
 
-void screenspace_from_ndc(vertex *vertices, int num_vertices, float znear, float zfar, vertex *out_vertices)
+void screenspace_from_ndc(vec4f *vertices, int num_vertices, float znear, float zfar, vec4f *out_vertices)
 {
     // apply a basic transformation to convert from NDC to screen space
     for (int i = 0; i < num_vertices; i++)
     {
         // NDC coordinates are in the range [-1, 1]
         // convert to screen space coordinates
+        /*
+        x_screen = x_vp + ((x_ndc + 1) * w_vp / 2)
+        y_screen = y_vp + ((y_ndc + 1) * h_vp / 2)
+        z_screen = z_min + ((z_ndc + 1) * (z_max - z_min) / 2)
+        */
+        // out_vertices[i].x = /* 0 + */ ((vertices[i].x + 1.0f) * window_width / 2.0f);
+        // out_vertices[i].y = window_height + ((vertices[i].y + 1.0f) * window_height / 2.0f);
+        // out_vertices[i].z = znear + ((vertices[i].z + 1.0f) * (zfar - znear) / 2.0f);
+        // out_vertices[i].w = vertices[i].w; // keep W as is
 
-        out_vertices[i].position.x = (vertices[i].position.x + 1.0f) * 0.5f * window_width;
-        out_vertices[i].position.y = (1.0f - (vertices[i].position.y + 1.0f) * 0.5f) * window_height; // flip Y axis
-        out_vertices[i].position.z = vertices[i].position.z; // Z coordinate remains unchanged because we don't do anything with it for now
-        out_vertices[i].position.w = vertices[i].position.w; // keep W as is
+        out_vertices[i].x = (vertices[i].x + 1.0f) * 0.5f * window_width;
+        out_vertices[i].y = (1.0f - (vertices[i].y + 1.0f) * 0.5f) * window_height; // flip Y axis
+        out_vertices[i].z = vertices[i].z; // Z coordinate remains unchanged because we don't do anything with it for now
+        out_vertices[i].w = vertices[i].w; // keep W as is
     }
 }
 
-void screenspace_draw_model(vec4f* screen_vertices, int num_indices, int* ibo, uint32_t* colors, uint32_t* image)
+void screenspace_draw_model(vec4f* screen_vertices, int num_indices, int* ibo, uint32_t* image)
 {
-    int color_index = 0;
     for (int i = 0; i < num_indices; i += 3)
     {
         triangle tri = {
@@ -121,17 +129,16 @@ void screenspace_draw_model(vec4f* screen_vertices, int num_indices, int* ibo, u
             screen_vertices[ibo[i + 1]],
             screen_vertices[ibo[i + 2]]
         };
-        screenspace_draw_triangle(image, tri, colors[color_index]);
-        color_index++;
+        screenspace_draw_triangle(image, tri);
     }
 }
 
-void screenspace_add_point_depth(vec4f point, uint32_t* image, uint32_t color)
+void screenspace_add_point_depth(vec4f point, uint32_t* image)
 {
     if (point.z < depth_buffer[((int)round(point.y) * window_width) + (int)round(point.x)])
     {
         depth_buffer[((int)round(point.y) * window_width) + (int)round(point.x)] = point.z;
-        image[((int)round(point.y) * window_width) + (int)round(point.x)] = color;
+        image[((int)round(point.y) * window_width) + (int)round(point.x)] = 0xFF00FF00;
     }
 }
 

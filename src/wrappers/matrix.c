@@ -73,7 +73,7 @@ void mat4_transform_vec3(const mat4 m, const vec3* v, vec3* out)
     out->y = (int)(m[1] * v->x + m[5] * v->y + m[9] * v->z + m[13]);
     out->z = (int)(m[2] * v->x + m[6] * v->y + m[10] * v->z + m[14]);
 }
-void mat4_transform_vec3f(const mat4 m, vec3f* v, vec3f* out)
+void mat4_transform_vec3f(const mat4 m, const vec3f* v, vec3f* out)
 {
     out->x = m[0] * v->x + m[4] * v->y + m[8] * v->z + m[12];
     out->y = m[1] * v->x + m[5] * v->y + m[9] * v->z + m[13];
@@ -158,39 +158,4 @@ int vec4_collinear(vec4f a, vec4f b, vec4f c, float epsilon)
     // Check if the points a, b, c are collinear within a given epsilon
     float area = (b.x - a.x) * (c.y - a.y) - (b.y - a.y) * (c.x - a.x);
     return fabs(area) < epsilon;
-}
-
-// Subtract two 3D vectors: result = a - b
-vec3f vec3_sub(vec3f a, vec3f b) {
-    return (vec3f){
-        .x = a.x - b.x,
-        .y = a.y - b.y,
-        .z = a.z - b.z
-    };
-}
-
-// Compute the cross product of two 3D vectors: result = a × b
-vec3f vec3_cross(vec3f a, vec3f b) {
-    return (vec3f){
-        .x = a.y * b.z - a.z * b.y,
-        .y = a.z * b.x - a.x * b.z,
-        .z = a.x * b.y - a.y * b.x
-    };
-}
-
-// Normalize a 3D vector (make its length 1)
-vec3f vec3_normalize(vec3f v) {
-    float len = sqrtf(v.x * v.x + v.y * v.y + v.z * v.z);
-    if (len == 0.0f)
-        return (vec3f){0.0f, 0.0f, 0.0f};  // Avoid division by zero
-    return (vec3f){
-        .x = v.x / len,
-        .y = v.y / len,
-        .z = v.z / len
-    };
-}
-
-float vec2_distance(vec2 a, vec2 b)
-{
-    return sqrt(powf(b.x - a.x, 2.0f) + powf(b.y - a.y, 2.0f));
 }

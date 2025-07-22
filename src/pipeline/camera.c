@@ -1,6 +1,6 @@
 #include "camera.h"
 
-void camera_from_world(vec3f camera_pos, quat camera_rot, vertex* vertices, int num_vertices, vertex* out_vertices)
+void camera_from_world(vec3f camera_pos, quat camera_rot, vec4f* vertices, int num_vertices, vec4f* out_vertices)
 {
     mat4 inverse_camera_transform;
 
@@ -22,7 +22,6 @@ void camera_from_world(vec3f camera_pos, quat camera_rot, vertex* vertices, int 
     // Step 5: Transform each vertex
     for (int i = 0; i < num_vertices; i++)
     {
-        mat4_transform_vec4f(inverse_camera_transform, vertices[i].position, &out_vertices[i].position);
-        mat4_transform_vec3f(inverse_camera_transform, &vertices[i].normal, &out_vertices[i].normal);
+        mat4_transform_vec4f(inverse_camera_transform, vertices[i], &out_vertices[i]);
     }
 }
