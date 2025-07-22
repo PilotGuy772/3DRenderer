@@ -16,7 +16,7 @@ void add_fragment(fragment frag)
     fragments[fragment_index] = frag;
 }
 
-void draw_fragments(vertex *vertices, int num_vertices, face *faces, int num_faces, fragment *out_fragments, int* num_fragments)
+void draw_fragments(vertex *vertices, int num_vertices, face *faces, int num_faces, fragment *out_fragments, int num_fragments)
 {
     out_fragments = malloc(window_width * window_height * sizeof(fragment));
     for (int i = 0; i < num_faces; i++)
@@ -28,7 +28,7 @@ void draw_fragments(vertex *vertices, int num_vertices, face *faces, int num_fac
 
     fragments = realloc(fragments, (fragment_index + 1) * sizeof(fragment));
     out_fragments = fragments;
-    *num_fragments = fragment_index + 1;
+    num_fragments = fragment_index + 1;
 }
 
 void fragment_line(vertex a, vertex b)

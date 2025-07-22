@@ -163,15 +163,15 @@ void render_model(uint32_t* image, vertex* vertices, int num_vertices, int* face
 
     // culling!!
     // 3.5. cull triangles that are outside the view frustum
-    vertex* culled_vertices = clip_vertices;//NULL;
-    face* culled_faces = faces;//NULL;
-    // int tmp_num_vertices = 0;
-    // int tmp_num_indices = 0;
-    // culling_cull_triangle(clip_vertices, num_vertices, faces, num_faces, 
-    //                         &culled_vertices, &tmp_num_vertices, 
-    //                         &culled_faces, &tmp_num_indices);
-    // num_vertices = tmp_num_vertices;
-    // num_faces = tmp_num_indices;
+    vertex* culled_vertices = NULL;
+    face* culled_faces = NULL;
+    int tmp_num_vertices = 0;
+    int tmp_num_indices = 0;
+    culling_cull_triangle(clip_vertices, num_vertices, faces, num_faces, 
+                            &culled_vertices, &tmp_num_vertices, 
+                            &culled_faces, &tmp_num_indices);
+    num_vertices = tmp_num_vertices;
+    faces = tmp_num_indices;
 
     // 4. transform into NDC
     // this is simple enough that we can do it in place
@@ -192,25 +192,11 @@ void render_model(uint32_t* image, vertex* vertices, int num_vertices, int* face
     // finally, 6. assemble and draw triangles
     //screenspace_clear_depth_buffer(width, height);
     //screenspace_draw_model(screen_vertices, num_indices, culled_indices, colors, image);
-
-    fragment* fragments = NULL;
-    int num_fragments = 0;
-    draw_fragments(screen_vertices, num_vertices, faces, num_faces, fragments, &num_fragments);
-
-    // now, draw the fragments to the image
-    for (int i = 0; i < num_fragments; i++)
-    {
-        int x = (int)round(fragments[i].screen_coord.x);
-        int y = (int)round(fragments[i].screen_coord.y);
-        if (x >= 0 && x < width && y >= 0 && y < height)
-        {
-            image[y * width + x] = fragments[i].color;
-        }
-    }
+    
 
     // free everything
     free(world_vertices);
-    //free(vertices_w);
+    free(vertices_w);
     free(camera_vertices);
     // ATTN! We will free these as soon as we're done with them later... doing this for simplicity for now
 

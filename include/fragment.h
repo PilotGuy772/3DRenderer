@@ -13,8 +13,6 @@ typedef struct fragment
     vec3f normal;
 } fragment;
 
-void draw_fragments(vertex* vertices, int num_vertices, face* faces, int num_faces, fragment* out_fragments, int* num_fragments);
-void fragment_line(vertex a, vertex b);
-
+void draw_fragments(vertex* vertices, int num_vertices, face* faces, int num_faces, fragment* out_fragments);
 
 #endif
