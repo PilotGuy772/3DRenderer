@@ -143,3 +143,5 @@ void screenspace_clear_depth_buffer(int width, int height)
         depth_buffer[i] = 1.0f;
     }
 }
+
+//void draw_fragments(uint32_t* image, fragment* frags, )
