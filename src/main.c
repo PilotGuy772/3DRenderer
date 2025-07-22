@@ -27,6 +27,12 @@ void print_vertices(vec4f* screen_vertices, int num_vertices)
 
 int main(int argc, char *argv[])
 {    
+    if (argc < 2)
+    {
+        printf("Usage: %s <model.obj>\n", argv[0]);
+        return 1;
+    }
+
     SDL_Init(SDL_INIT_VIDEO);
 
     key_states = malloc(SDL_NUM_SCANCODES * sizeof(int));
@@ -48,7 +54,7 @@ int main(int argc, char *argv[])
     vec3f* vertices;
     int* indices;
     int num_vertices, num_indices;
-    read_model("3d.obj", &vertices, &indices, &num_vertices, &num_indices);
+    read_model(argv[1], &vertices, &indices, &num_vertices, &num_indices);
 
     printf("Read vertices:\n");
     for (int i = 0; i < 1; i++)
