@@ -37,7 +37,6 @@ void drawer_cleanup()
     SDL_DestroyTexture(texture);
     SDL_DestroyRenderer(renderer);
     SDL_DestroyWindow(window);
-    SDL_Quit();
 }
 
 void drawer_clear_buffer(uint32_t* image)

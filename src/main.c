@@ -57,18 +57,10 @@ int main(int argc, char *argv[])
     read_model(argv[1], &vertices, &indices, &num_vertices, &num_indices);
 
     printf("Read vertices:\n");
-    for (int i = 0; i < 1; i++)
+    for (int i = 0; i < num_vertices; i++)
     {
         printf("Vertex %d: (%f, %f, %f)\n", i, vertices[i].x, vertices[i].y, vertices[i].z);
     }
-    // printf("Read faces:\n");
-    // for (int i = 0; i < num_indices; i += 3)
-    // {
-    //     printf("Face %d: (%d, %d, %d)\n", i / 3, indices[i], indices[i + 1], indices[i + 2]);
-    // }
-
-    // finally, a mat4 representing its position in world space
-    // for now, we want no transformations, so we can use the identity matrix
     mat4 transform;
     mat4_identity(transform);
     //mat4_translate(transform, 0.0f, 0.0f, 6.0f);
@@ -80,15 +72,6 @@ int main(int argc, char *argv[])
     mat4_rotate_y(change, 0.01f);
     
     
-
-    // define a matrix for camera position
-    // for now, back it up a bit and look at the origin
-    // mat4 camera_transform;
-    // mat4_identity(camera_transform);
-    // mat4_translate(camera_transform, 0.0f, 0.0f, 6.0f);
-
-    // mat4 camera_per_tick_transform;
-    // mat4_identity(camera_per_tick_transform);
     vec3f camera_pos = {0.0f, 0.0f, 6.0f};
     quat camera_rot = {1.0f, 0.0f, 0.0f, 0.0f}; // identity quaternion
 
@@ -121,14 +104,10 @@ int main(int argc, char *argv[])
 
         render_model(image, vertices, num_vertices, indices, num_indices, transform, camera_pos, camera_rot, width, height);
 
-        //screenspace_plot_point(image, (screen_point){width / 2, height / 2});
         drawer_draw_buffer(image);
         drawer_clear_buffer(image);
 
-        //mat4_translate(camera_transform, 0, 0, camera_transform[14] - 0.004f);
         mat4_multiply(transform, change, transform);
-        // clamp_movement(&camera_per_tick_transform);
-        // mat4_multiply(camera_transform, camera_per_tick_transform, camera_transform);
 
         // camera control
         tick_transform(&camera_pos, &camera_rot);
@@ -138,9 +117,9 @@ int main(int argc, char *argv[])
         printf("Camera rotation: (%f, %f, %f, %f)\n", camera_rot.w, camera_rot.x, camera_rot.y, camera_rot.z);
     }
 
-    //printf("p1: %d %d\np2: %d %d\np3: %d %d\n", p1.x, p1.y, p2.x, p2.y, p3.x, p3.y);
     free(image);
     drawer_cleanup();
+    SDL_Quit();
     return 0;
 }
 
@@ -208,6 +187,9 @@ void render_model(uint32_t* image, vec3f* vertices, int num_vertices, int* indic
     free(world_vertices);
     free(vertices_w);
     free(camera_vertices);
+    free(culled_vertices);
+    free(culled_indices);
+    free(screen_vertices);
     // ATTN! We will free these as soon as we're done with them later... doing this for simplicity for now
 
 }

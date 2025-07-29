@@ -4,14 +4,14 @@ LINUX_SDL_CFLAGS = $(shell sdl2-config --cflags)
 WINDOWS_SDL_CFLAGS = -IC:/SDL2/include
 
 MACOS_LDLIBS = $(shell sdl2-config --libs) -lm
-LINUX_LDLIBS = $(shell sdl2-config --libs) -lm
+LINUX_LDLIBS = $(shell sdl2-config --libs) -lm -fsanitize=address
 WINDOWS_LDLIBS = -LC:/SDL2/lib -lSDL2main -lSDL2 -mwindows
 
 CC_macos = gcc
 CC_linux = gcc
 CC_windows = x86_64-w64-mingw32-gcc
 
-RUNTIME ?= macos
+RUNTIME ?= linux
 
 ifeq ($(RUNTIME),macos)
     CC := $(CC_macos)
@@ -20,7 +20,7 @@ ifeq ($(RUNTIME),macos)
     EXT :=
 else ifeq ($(RUNTIME),linux)
     CC := $(CC_linux)
-    CFLAGS := -Wall -Wextra -std=c99 -Iinclude $(LINUX_SDL_CFLAGS)
+    CFLAGS := -Wall -Wextra -std=c99 -Iinclude -fsanitize=address -g -O0 $(LINUX_SDL_CFLAGS)
     LDLIBS := $(LINUX_LDLIBS)
     EXT :=
 else ifeq ($(RUNTIME),windows)
@@ -57,7 +57,7 @@ clean:
 	rm -rf $(BUILD_DIR) $(PUBLISH_DIR)
 
 run: all
-	./$(TARGET)
+	./$(TARGET) cube.obj
 
 publish: $(OBJS)
 	@mkdir -p $(PUBLISH_DIR)
