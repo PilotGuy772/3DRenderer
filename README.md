@@ -1,6 +1,6 @@
 # 3DRenderer
 
-A 3D graphics pipeline entirely on CPU. This implements a complete graphical pipeline without the assistance of a GPU. It supports reading models from Waveform .obj files, too.
+A 3D graphics pipeline entirely on CPU. This implements a complete graphical pipeline without the assistance of a GPU. It supports reading models from Wavefront .obj files, too.
 
 This project is done being developed-- it's mostly just for fun, anyway. I've written basic instructions for compiling this project below, but I also published binaries for Linux and macOS in the final release.
 
